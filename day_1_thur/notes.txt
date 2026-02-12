@@ -60,7 +60,27 @@ These are instances when you should use the generate iterator method
 - o access an aggregate object’s contents without exposing its internal representation.
   so you just call next wihtout having to know how the object is handling the data, weither it is downloading it, fetching it, running a query, you don't need to know all those 
 • to support multiple traversals of aggregate objects.
-  so that multiple objects can read the same object with them having different pointers and not affecthign the other's state, as they are the ones managing their individual states
+  so that multiple objects can read the same object with them having different pointers and not affecthign the other's state, as they are the ones managing their individual states.
+  To “support multiple traversals” it must be possible to obtain multiple independent
+  iterators from the same iterable instance, and each iterator must keep its own internal
+  state,
 • to provide a uniform interface for traversing different aggregate structures (that is,
 to support polymorphic iteration).
   so we have a uniform way of iterating through data types, so we don't need to learn new ways for different data types 
+
+
+  ===============================
+
+           GENERATORS 
+
+  ===============================
+
+
+Any python funciton that has the yield keyword in its body is a generator function, a function which when called returns a generator object 
+with generator funcitons, function body is suspended as they yield, and then returns when they are done yielding. he return statement in the body
+of a generator function causes StopIteration to be raised by the
+generator object.8
+
+Nowadays, laziness is considered a good trait, at least in programming lan‐
+guages and APIs. A lazy implementation postpones producing values to the last possible
+moment. This saves memory and may avoid useless processing as well.

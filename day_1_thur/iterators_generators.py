@@ -51,3 +51,27 @@ print(next(my_num))
 # print(next(my_iterator))
 # print(next(my_iterator))
 # print(next(my_iterator))
+
+
+# ===============================
+
+ #          GENERATORS 
+
+#  ===============================
+
+def gen_123():
+  print("start")
+  yield 1
+  print("contiue")
+  yield 2
+  print("end")
+  yield 3
+  
+for i in gen_123():
+  print("-->", i)   # this one prints after the gen function has yielded a value, meaning the print in gen would log first
+  
+g = gen_123()
+print(next(g))
+print(next(g))
+print(next(g))
+print(next(g))
