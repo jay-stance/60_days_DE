@@ -5,6 +5,13 @@ def gen_123():
   yield 2
   print("end")
   yield 3
-  
-for i in gen_123():
-  print("-->", i)
+
+list_comprehension = [x*3 for x in gen_123()]
+
+for i in list_comprehension:
+  print(i)
+
+gen_expression = (x*3 for x in gen_123())
+
+for i in gen_expression:
+  print(i)

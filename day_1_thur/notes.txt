@@ -84,3 +84,7 @@ generator object.8
 Nowadays, laziness is considered a good trait, at least in programming lan‐
 guages and APIs. A lazy implementation postpones producing values to the last possible
 moment. This saves memory and may avoid useless processing as well.
+
+THAT IS TO SAY, GENERATORS IS A NICE WAY OF SAVING MEMORY 
+
+A generator expression is a lazy version of a list comprehension.
