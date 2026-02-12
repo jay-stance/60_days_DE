@@ -50,3 +50,17 @@ Here are the key takeaways you need to remember about this `Iterator` class code
 * It tells Python: "Even if a class didn't explicitly inherit from me (`class X(Iterator)`), if it has both `__iter__` and `__next__` methods, treat it as an Iterator anyway."
 * This allows `isinstance(my_object, Iterator)` to return `True` for objects that just *look* like iterators, keeping Python flexible.
 
+becuase the only functions that are required are __iter__ and __next__ there is no way to know remaining items in an iterator, or even to reset the iterator. to reset you must call iterator on the iterable that created the iterator and not the iterator itself, cos the __iter__ returned by the iterator itself is basically just itself, meaning no reset.
+
+iterables always returns a new iterator when instatiated, while iterators return self, and a next function 
+
+NOTE: don't be tempted to put the iterator generator inside the main class, it would. make it exhaustible, as you would be reading the main class' state.
+
+These are instances when you should use the generate iterator method 
+- o access an aggregate object’s contents without exposing its internal representation.
+  so you just call next wihtout having to know how the object is handling the data, weither it is downloading it, fetching it, running a query, you don't need to know all those 
+• to support multiple traversals of aggregate objects.
+  so that multiple objects can read the same object with them having different pointers and not affecthign the other's state, as they are the ones managing their individual states
+• to provide a uniform interface for traversing different aggregate structures (that is,
+to support polymorphic iteration).
+  so we have a uniform way of iterating through data types, so we don't need to learn new ways for different data types 
