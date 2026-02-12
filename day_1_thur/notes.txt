@@ -1,0 +1,52 @@
+iterators is fundamental in data processing, and when fetching items that don't fit into memory we need a way to fetch them dizzly, that is one at a time, or on demand
+
+the yield keyword allows the construction of generators which works as iterators. iterators retrieves things from collections, but generators can retrieve things form thin air
+
+whenever the interpreter needs to iterate over an object, it automatically calls the iter(x) built in function
+the iter(s) built in function
+- check weither the object implements iter and calls that to gat an iterator 
+- if __iter__ is not implmeneted but __getItem__ is, python creates an iterator that attempts to fetch items in order starting from index 0 
+- if that also fails, python raises type error, usually 'object is not an iterable'
+
+a core philosophy of Python called EAFP ("Easier to Ask for Forgiveness than Permission").
+
+instead of using isInstance or isSubclass abc.iterable to check if an object is iterable, use iter(X), as this checks not as strict as the lateer. it tries to create an actual iterator from the object, meaning it checks for iter and get item functions. just checks if it walks like a duck 
+
+the standrd interface for an iterator has 2 methods:
+- __next__: returns next available items until stop iteration error is raised
+- __iter__: returns self, allows iterators to be used where an iterable is expected. eg using an already created iterator or generator in for loops, the for loop always tries to call iter on whatever it is passed, and now remember we passed an already generated iterator. so if this iterator doesn't have an iter in it too, the for loop would crash 
+
+iterable - __iter__
+
+iterator - __next__
+         - __iter__  - returns self      (this now means in iterator can be used wherever an iterable is required )
+
+
+
+Here are the key takeaways you need to remember about this `Iterator` class code. Think of this as the "Constitution" for all Python iterators.
+
+* **Inheritance Hierarchy (`Iterator(Iterable)`):**
+* Every Iterator is technically an Iterable (a child of the `Iterable` class).
+* This means anything you can call `next()` on, you can also loop over in a `for` loop.
+
+
+* **The "Must-Do" Rule (`@abstractmethod __next__`):**
+* This is an abstract method. It enforces that if you build a custom iterator, **you** are responsible for writing the logic to fetch the next item.
+* The base class does *not* know how to fetch your data. It just defines the rule that you must raise `StopIteration` when there is no data left.
+
+
+* **The "Free Gift" (`def __iter__`):**
+* This method is already written for you. It returns `self`.
+* **Takeaway:** When you write a custom iterator class that inherits from this, you **do not** need to write `__iter__`. You get this behavior for free. It ensures your iterator works in `for` loops immediately.
+
+
+* **Memory Efficiency (`__slots__ = ()`):**
+* This class is designed to be lightweight.
+* It explicitly refuses to create a `__dict__` (backpack) to save memory, as it is just a blueprint and shouldn't store data itself.
+
+
+* **Duck Typing Logic (`__subclasshook__`):**
+* This is the "Honorary Citizen" rule.
+* It tells Python: "Even if a class didn't explicitly inherit from me (`class X(Iterator)`), if it has both `__iter__` and `__next__` methods, treat it as an Iterator anyway."
+* This allows `isinstance(my_object, Iterator)` to return `True` for objects that just *look* like iterators, keeping Python flexible.
+
