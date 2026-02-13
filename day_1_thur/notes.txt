@@ -88,3 +88,6 @@ moment. This saves memory and may avoid useless processing as well.
 THAT IS TO SAY, GENERATORS IS A NICE WAY OF SAVING MEMORY 
 
 A generator expression is a lazy version of a list comprehension.
+
+The signature of the constructor in Example 14-10 is Arithmetic
+    Progression(begin, step[, end]).

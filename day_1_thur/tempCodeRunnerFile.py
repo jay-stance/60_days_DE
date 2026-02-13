@@ -1,17 +1,15 @@
-def gen_123():
-  print("start")
-  yield 1
-  print("contiue")
-  yield 2
-  print("end")
-  yield 3
+class ArithmeticProgression():
+  def __init__(self, begin, step, end):
+    self.begin = begin 
+    self.step = step 
+    self.end = end 
+    
+  def __iter__(self):
+    yield self.begin
+    
+    for i in range(self.end - 1):
+      self.begin += self.step
+      yield self.begin
 
-list_comprehension = [x*3 for x in gen_123()]
-
-for i in list_comprehension:
-  print(i)
-
-gen_expression = (x*3 for x in gen_123())
-
-for i in gen_expression:
-  print(i)
+ap = ArithmeticProgression(0,1,3)
+print(list(ap))

@@ -111,3 +111,25 @@ gen_expression = (x*3 for x in gen_123())   # this generates a generator express
 
 for i in gen_expression:
   print(i)
+
+
+class ArithmeticProgression():
+  def __init__(self, begin, step, end = None):
+    self.begin = begin 
+    self.step = step 
+    self.end = end 
+    
+  def __iter__(self):
+    # get result to be in the right type
+    result = type(self.begin + self.step)(self.begin)
+    index = 0
+    forever = self.end is None
+    
+    while forever or result < self.end:
+      yield result 
+      index += 1
+      # result += self.step
+      result = self.begin + (self.step * index)   # this is to reduce the cumulative effect of errors when working with floats
+
+ap = ArithmeticProgression(0,1,3)
+print(list(ap))
