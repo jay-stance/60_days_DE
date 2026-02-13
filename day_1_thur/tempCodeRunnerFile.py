@@ -1,14 +1,13 @@
 import itertools
 
-merged_chain = itertools.chain('ABC', range(2))
+# An iterator that yields numbers (could be a massive file stream)
+data_stream = (x for x in range(5))
 
-print(merged_chain)
-print(list(merged_chain))
+# Split it into two independent streams
+stream_A, stream_B = itertools.tee(data_stream, 2)
 
-# merge_zip = zip(range(4), "abcdef")
-merge_zip = itertools.zip_longest(range(4), "abcdef", fillvalue="Nothing here")
-print(merge_zip)
-print(list(merge_zip))
+print(list(stream_A)) 
+# Output: [0, 1, 2, 3, 4]
 
-merge_product = itertools.product('abc', repeat=2)
-print(list(merge_product))
+print(list(stream_B)) 
+# Output: [0, 1, 2, 3, 4] (It works a second time!)

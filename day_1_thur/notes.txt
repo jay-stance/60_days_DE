@@ -202,7 +202,16 @@ They do this in two different ways: Sequentially (end-to-end) and In Parallel (s
 * **Result:** `AB`, `BA`, `AA`, and `BB` are all kept.
 
 
+===============================
 
----
+    RE-ARRANGING ITER TOOLS 
 
-That covers almost all the major `itertools` generator families! The very last tool the book usually introduces in this section is `itertools.groupby`, which is used to group data together based on specific traits. Would you like to tackle that one next?
+===============================
+
+
+The Rearranging Generators (The Stream Managers)
+itertools.groupby(data, key): The "Chunker." Groups items together based on a shared trait.
+
+Warning: The data must be sorted by that trait first, or it will create broken, duplicate groups.
+
+itertools.tee(data, n=2): The "Y-Pipe." Takes one generator and duplicates it into n independent streams. Perfect for sending the same massive dataset to two different places (like a database and a backup file) without loading it into RAM.
