@@ -133,3 +133,32 @@ class ArithmeticProgression():
 
 ap = ArithmeticProgression(0,1,3)
 print(list(ap))
+
+def func_ap(begin, step, end = None):
+  result = type(begin + step)(begin)
+  index = 0
+  forever = end is None
+  
+  while forever or result < end:
+    yield result 
+    index += 1
+    result = begin + {step * index}
+    
+  
+# ===============================
+
+#   FILTERING GENERATORS 
+
+# ===============================
+
+import itertools
+
+def isVowel(c):
+  return c.lower() in "aeiou"
+
+filterRes = filter(isVowel, 'jaystance')
+print(filterRes)
+print(list(filterRes))
+print(next(filterRes))
+print(next(filterRes))
+print(next(filterRes))

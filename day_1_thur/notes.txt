@@ -91,3 +91,46 @@ A generator expression is a lazy version of a list comprehension.
 
 The signature of the constructor in Example 14-10 is Arithmetic
     Progression(begin, step[, end]).
+
+
+===============================
+
+    FILTERING GENERATORS 
+
+===============================
+
+iterTools.filter is a generator funciton 
+
+**Core Concept:** All of these return **lazy iterators** (they process one item at a time to save memory). They do *not* return lists unless you wrap them in `list()`.
+
+**1. The Bouncers (Check every single item)**
+
+* **`filter(rule, data)`**: Keeps items where the rule is **True**.
+* **`itertools.filterfalse(rule, data)`**: Keeps items where the rule is **False**.
+
+**2. The Switch Flippers (Check until the first failure, then stop checking)**
+
+* **`itertools.dropwhile(rule, data)`**: Drops items while the rule is True. Once the rule fails, it **keeps everything else** remaining.
+* **`itertools.takewhile(rule, data)`**: Keeps items while the rule is True. Once the rule fails, it **shuts down completely**.
+
+**3. The Structural Filters (No rule function needed)**
+
+* **`itertools.compress(data, mask)`**: Keeps items where the corresponding item in your boolean mask is Truthy (acts like a stencil).
+* **`itertools.islice(data, start, stop, step)`**: Slices an iterator lazily, exactly like standard slicing (`data[start:stop:step]`), but without loading the data into memory.
+
+
+===============================
+ 
+     MAPPING GENERATORS
+
+===============================
+
+Here is a highly condensed, copy-paste ready summary of the Mapping Generators for your notes:
+
+**Core Concept:** These return **lazy iterators** that yield one transformed item for every one item you put in (1-to-1 mapping). They do not drop items; they alter them or combine them.
+
+* **`itertools.accumulate(data, [func])`**: The "Snowball". Combines the current item with the *previous result*. Defaults to a running sum, but can take functions like `min`, `max`, or multiplication (e.g., to build factorials).
+* **`enumerate(data, start=0)`**: The "Label Maker". Attaches an index number to every item, yielding tuples in the format `(index, item)`.
+* **`map(func, data)`**: The "Transformer". Applies your chosen function to every single item individually and yields the new result.
+* **`itertools.starmap(func, data)`**: The "Unpacker". Exactly like `map`, but specifically for data grouped in tuples (like `[(2, 5), (3, 2)]`). It automatically unpacks each tuple to pass them as separate arguments to your function.
+

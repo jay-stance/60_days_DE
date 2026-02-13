@@ -1,15 +1,11 @@
-class ArithmeticProgression():
-  def __init__(self, begin, step, end):
-    self.begin = begin 
-    self.step = step 
-    self.end = end 
-    
-  def __iter__(self):
-    yield self.begin
-    
-    for i in range(self.end - 1):
-      self.begin += self.step
-      yield self.begin
+import itertools
 
-ap = ArithmeticProgression(0,1,3)
-print(list(ap))
+def isVowel(c):
+  return c.lower() in "aeiou"
+
+filterRes = filter(isVowel, 'jaystance')
+print(filterRes)
+print(list(filterRes))
+print(next(filterRes))
+print(next(filterRes))
+print(next(filterRes))
