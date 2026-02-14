@@ -13,6 +13,8 @@ Why use Pydantic?¶
   - Battle tested — Pydantic is downloaded over 360M times/month and is used by all FAANG companies and 20 of the 25 largest companies on NASDAQ. If you're trying to do something with Pydantic, someone else has probably already done it. Learn more…
 
 
+----    NOTE: WE ARE ALWAYS USING SQUARE BRACKETS IN THE TYPES
+
 Everything in Pydantic revolves around creating classes that inherit from BaseModel. You use standard Python type hints to define exactly what your data should look like.
 
 from pydantic import BaseModel

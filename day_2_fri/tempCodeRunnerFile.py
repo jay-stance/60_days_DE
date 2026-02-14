@@ -1,14 +1,8 @@
-from pydantic import BaseModel 
+from dataclasses import dataclass
 
-class Employee(BaseModel):
-  id: int 
+@dataclass
+class User():
   name: str
-  department: str = "Software Engineering"
-  manager_name: str | None = None
+  age: int
   
-new_employee = Employee(id=123, name='jay stance')
-print(new_employee)
-
-print(new_employee.model_dump())
-
-print(new_employee.model_dump_json())
+jay_user = User("jay stance", 20)

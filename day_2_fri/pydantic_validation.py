@@ -73,3 +73,13 @@ print(new_employee)
 print(new_employee.model_dump())
 
 print(new_employee.model_dump_json())
+
+
+from dataclasses import dataclass
+
+@dataclass
+class User():
+  name: str
+  age: int
+  
+jay_user = User("jay stance", 20)
