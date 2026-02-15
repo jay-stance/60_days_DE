@@ -2,7 +2,7 @@ from datetime import datetime
 
 import logfire
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 logfire.configure()
 logfire.instrument_pydantic()  

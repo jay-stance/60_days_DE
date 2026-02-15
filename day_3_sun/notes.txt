@@ -1,0 +1,113 @@
+Pytest is a python testing framework. it is better than unitest that ships with python as it reduces boiler plate codes and makes testing easier and more efficient.
+
+Most functional tests follow the Arrange-Act-Assert model:
+
+- Arrange, or set up, the conditions for the test
+- Act by calling some function or method
+- Assert that some end condition is true
+
+sameple code 
+
+def test_always_passes():
+    assert True
+
+def test_always_fails():
+    assert False
+
+
+The beauty of `pytest` is that it completely hijacks Python's built-in `assert` keyword and gives it super-powers. In older frameworks (like `unittest`), you had to memorize dozens of methods like `assertEqual`, `assertTrue`, `assertIn`.
+
+With Pytest, you just use standard Python math and logic.
+
+For a $5k/month Data Engineering role, you don't just test if `1 + 1 == 2`. You test if your data pipelines are transforming records correctly, handling bad data, and doing math accurately.
+
+Here is your DE-focused cheat sheet for assertions:
+
+### 1. The Core Operators (Your Daily Drivers)
+
+You will use these to check the output of your data transformation functions.
+
+* **Equality (`==`)**: Did my function output the exact dictionary or list I expected?
+```python
+def test_clean_user_record():
+    raw_data = {"Name": " ALICE ", "age": "25"}
+    # Assert the pipeline cleans the whitespace and casts the integer
+    assert clean_data(raw_data) == {"name": "alice", "age": 25}
+
+```
+
+
+* **Membership (`in` / `not in`)**: Did my pipeline successfully add (or drop) a specific column/key?
+```python
+def test_pii_dropped():
+    secure_record = mask_sensitive_data({"user": "Bob", "ssn": "123-45"})
+    # Assert the social security number was removed
+    assert "ssn" not in secure_record 
+
+```
+
+
+* **Length and Type (`len()`, `isinstance()`)**: Did the API pagination function pull the correct number of records?
+```python
+def test_api_pull():
+    records = fetch_page(page_number=1)
+    assert len(records) == 100
+    assert isinstance(records, list)
+
+```
+
+
+
+### 2. The Float Problem: `pytest.approx` (Crucial for DE)
+
+In Data Engineering, you often calculate averages or aggregate financial data. Python has a famous quirk with floating-point math: `0.1 + 0.2` actually equals `0.30000000000000004`.
+If you write `assert 0.1 + 0.2 == 0.3`, **your test will fail.**
+
+You must use `approx` for math tests to allow for microscopic rounding differences.
+
+```python
+from pytest import approx
+
+def test_average_revenue():
+    avg = calculate_average_revenue([0.1, 0.2])
+    assert avg == approx(0.3)
+
+```
+
+### 3. Testing for Failure: `pytest.raises`
+
+A senior DE doesn't just test the "happy path." You must prove that your pipeline securely crashes and throws the correct error when a corrupted CSV or bad API payload hits it.
+
+You use a context manager (`with`) to assert that an error *will* happen.
+
+```python
+import pytest
+from pydantic import ValidationError
+
+def test_pipeline_rejects_bad_data():
+    bad_record = {"age": "twenty"} # Should be an int
+    
+    # Assert that the code inside this block throws a ValidationError
+    with pytest.raises(ValidationError):
+        User.model_validate(bad_record)
+
+```
+
+### 4. Custom Error Messages (The Debugging Lifesaver)
+
+When a pipeline fails in an automated CI/CD system (like GitHub Actions), you want the logs to tell you exactly *why* it failed without having to dig through code. You can attach a custom message to any assert by adding a comma.
+
+```python
+def test_database_connection():
+    status = check_db()
+    assert status == "connected", f"Expected connected, but DB returned {status}"
+
+```
+
+---
+
+That is essentially the entire `assert` toolkit for Data Engineering!
+
+If you are reading that Real Python article, the next massive conceptual leap is **Pytest Fixtures**. Since you already know you need a database connection or a fake CSV to run the tests above, fixtures are how you provide them.
+
+Would you like a quick bullet-point summary of how a DE uses `pytest.fixture` to set up a fake database before you read that section?
