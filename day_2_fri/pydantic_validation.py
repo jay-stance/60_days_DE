@@ -75,11 +75,17 @@ print(new_employee.model_dump())
 print(new_employee.model_dump_json())
 
 
-from dataclasses import dataclass
+# from dataclasses import dataclass.    - traditional python data classes doesn't efforce types as runtime, b but pydantic's version does 
+from pydantic.dataclasses import dataclass
+
 
 @dataclass
 class User():
   name: str
   age: int
   
+bad_user = User(123, True)
+
+print(type(bad_user.name))
+
 jay_user = User("jay stance", 20)
