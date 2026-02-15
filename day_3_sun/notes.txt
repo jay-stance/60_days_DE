@@ -104,10 +104,65 @@ def test_database_connection():
 
 ```
 
----
+### Advanced Pytest Assertions for Data Engineering
 
-That is essentially the entire `assert` toolkit for Data Engineering!
+**1. Pytest Introspection (Automatic Diffs)**
 
-If you are reading that Real Python article, the next massive conceptual leap is **Pytest Fixtures**. Since you already know you need a database connection or a fake CSV to run the tests above, fixtures are how you provide them.
+* **Concept:** You don't need special methods to compare massive dictionaries or lists. Pytest automatically intercepts standard `==` assertions and prints a highly detailed, color-coded diff showing the exact missing key or mismatched value.
+* **Usage:** Just use `assert dict_A == dict_B`.
 
-Would you like a quick bullet-point summary of how a DE uses `pytest.fixture` to set up a fake database before you read that section?
+**2. The Subset Match (API / JSON testing)**
+
+* **Concept:** Use the subset operator (`<=`) to verify that specific key-value pairs exist inside a massive dictionary without having to mock the entire 50-key payload.
+* **Code:**
+```python
+expected_subset = {"is_active": True, "risk_score": 0.5}
+actual_record = get_enriched_user(105) # Returns a massive dict
+
+assert expected_subset.items() <= actual_record.items()
+
+```
+
+
+
+**3. Asserting Exact Error Messages**
+
+* **Concept:** Don't just test that an error happened; test that it happened for the *right reason* by capturing the exception and checking its string value.
+* **Code:**
+```python
+import pytest
+
+with pytest.raises(ValueError) as exc_info:
+    process_csv_row({"name": "Alice"}) # Missing 'age'
+
+assert "Missing required column: age" in str(exc_info.value)
+
+```
+
+
+
+**4. The DataFrame Trap**
+
+* **Concept:** Standard `assert df1 == df2` will violently crash with an "ambiguous truth value" error. You must use the built-in testing tools for Pandas or PySpark when comparing grid data.
+* **Code:**
+```python
+from pandas.testing import assert_frame_equal 
+
+# Do this instead of standard assert
+assert_frame_equal(clean_df, expected_df) 
+
+```
+
+
+
+**5. String Contains (SQL Generation)**
+
+* **Concept:** When testing dynamically generated SQL queries, never use `==` because invisible spaces, tabs, or newlines will cause false failures. Check for the presence of keywords using `in`.
+* **Code:**
+```python
+query = build_select_query("users", limit=100)
+
+assert "SELECT *" in query
+assert "LIMIT 100" in query
+
+```
