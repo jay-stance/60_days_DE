@@ -166,3 +166,73 @@ assert "SELECT *" in query
 assert "LIMIT 100" in query
 
 ```
+
+=================================
+
+      PYTEST FIXTURES
+
+=================================
+
+pytest fixtures are functions that can create data, test doubles, or initialize system state for the test suite. Any test that wants to use a fixture must explicitly use this fixture function as an argument to the test function, so dependencies are always stated up front:
+
+import pytest
+
+@pytest.fixture
+def example_fixture():
+    return 1
+
+def test_with_fixture(example_fixture):
+    assert example_fixture == 1
+
+
+### Pytest Fixtures & Architecture (Data Engineering Focus)
+
+**1. The Core Concept: Dependency Injection**
+
+* **What it is:** Fixtures replace the old `setUp()` methods. They are reusable functions decorated with `@pytest.fixture` that generate data, connections, or state.
+* **How to use it:** Pass the exact name of the fixture as an argument to your test function. Pytest will run the fixture and inject the result.
+
+**2. Setup and Teardown (`yield`)**
+
+* **Concept:** To prevent memory leaks or locked databases, fixtures must clean up after themselves, even if a test crashes.
+* **Syntax:** Use `yield` instead of `return`. Everything before `yield` is the setup; everything after `yield` is the teardown.
+```python
+@pytest.fixture
+def db_connection():
+    conn = connect_to_db() # SETUP
+    yield conn             # HAND TO TEST
+    conn.close()           # TEARDOWN (Always runs)
+
+```
+
+
+
+**3. Fixture Scope (Performance Optimization)**
+
+* **Concept:** Prevents heavy setups (like spinning up Apache Spark or a Docker DB) from running for every single test.
+* **Settings:** `@pytest.fixture(scope="...")`
+* `"function"` (Default): Runs from scratch for every test. (Use for small DataFrames/dicts).
+* `"module"`: Runs once per Python file.
+* `"session"`: Runs once per entire test suite run. (Use for heavy database connections).
+
+
+
+**4. Built-in "Super Fixtures" for DE**
+You don't write these; just request them by name in your test.
+
+* **`tmp_path`**: Creates a unique, safe, auto-deleting temporary folder for testing file I/O (CSV/Parquet exports) so parallel tests don't overwrite each other.
+* **`monkeypatch`**: Safely overrides environment variables (like `AWS_ACCESS_KEY` or `DATABASE_URL`) just for the duration of the test, ensuring you never accidentally hit production.
+
+**5. Architecture: `conftest.py**`
+
+* **Concept:** A magical file in the root of your test folder. Any fixture placed inside `conftest.py` becomes globally available to all your test files.
+* **Benefit:** You never have to `import` fixtures. Pytest finds them automatically, keeping your test files incredibly clean.
+
+**6. Fixture Chaining (Advanced Orchestration)**
+
+* **Concept:** Fixtures can request *other* fixtures as arguments. This allows you to build a modular assembly line before the test even begins.
+* **Example Pipeline:** 1. Fixture A creates an empty RAM database (`:memory:`).
+2. Fixture B requests Fixture A, inserts messy CSV data into it, and yields the populated database.
+3. The Test requests Fixture B, running the pipeline logic on a perfectly prepared environment.
+
+---
