@@ -236,3 +236,35 @@ You don't write these; just request them by name in your test.
 3. The Test requests Fixture B, running the pipeline logic on a perfectly prepared environment.
 
 ---
+
+
+Scaling & Organizing Pytest (Data Engineering Focus)
+
+Avoid Over-Fixturing: Do not create new fixtures just to change one value in a dataset. Use fixtures for infrastructure (DBs, files), and use Parametrization for data variations.
+
+conftest.py (The Infrastructure Hub): A special file where you place fixtures. Any fixture inside conftest.py is globally and automatically available to all tests in that folder without needing to be imported.
+
+autouse=True (The Invisible Guard): Forces a fixture to run for every test automatically.
+
+Pro-DE Tip: Use autouse=True alongside monkeypatch to block all external network/database calls globally. This guarantees no test ever hits the production environment.
+
+Marks (@pytest.mark.tag_name): Tags applied to test functions allowing you to categorize them (e.g., @pytest.mark.slow, @pytest.mark.spark).
+
+Execution: Run specific tags from the terminal using pytest -m "slow" or exclude them using pytest -m "not slow". Essential for skipping heavy database tests during local development.
+
+Built-in Marks: @pytest.mark.skip (always ignore this test) and @pytest.mark.xfail (this test is expected to fail because of a known bug).
+
+The "Incomprehensibility" Warning (Crucial DE Tip):
+The text warns that by combining 7 tests into 1, you lose the "descriptive nature" of the original function names. If a test fails, Pytest will just output a generic failure, making debugging hard.
+
+You fix this by using the ids parameter to label exactly what each piece of data is testing:
+
+Python
+# A real-world DE example: Testing a data cleaner
+@pytest.mark.parametrize("raw_input, expected_output", [
+    (" ALICE ", "alice"),
+    (None, "unknown"),
+], ids=["handles_whitespace", "handles_null_values"]) # <-- The Fix
+def test_name_cleaner(raw_input, expected_output):
+    assert clean_name(raw_input) == expected_output
+Now, if the test fails on a null value, your terminal will clearly state: FAILED test_name_cleaner[handles_null_values].
