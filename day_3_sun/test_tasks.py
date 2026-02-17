@@ -47,3 +47,18 @@ def test_clean_webhook_event_rejects_integers():
   # you have to use pytest specific took, with pytest.raises
   with pytest.raises(AttributeError):
     clean_webhook_payload({"USER_ID": 1, "Event_Type": 1})
+    
+    
+# ============================
+
+#. Test 3: The Float Trap Test
+
+# ============================
+
+def calculate_ad_spend(cpc: float, clicks: int):
+  return cpc * clicks
+  
+@pytest.mark.test_3
+def test_calculate_ad_spend():
+  ad_spend = calculate_ad_spend(0.1, 3)
+  assert ad_spend == pytest.approx(0.3)
