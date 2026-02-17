@@ -43,5 +43,7 @@ def test_clean_webhook_payload_eventId(input_value, expected_output):
 
 @pytest.mark.clean_payload
 def test_clean_webhook_event_rejects_integers():
-  with TypeError:
-    result = clean_webhook_payload({"USER_ID": 1, "Event_Type": 1})
+  
+  # you have to use pytest specific took, with pytest.raises
+  with pytest.raises(AttributeError):
+    clean_webhook_payload({"USER_ID": 1, "Event_Type": 1})
