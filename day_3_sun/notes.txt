@@ -277,3 +277,11 @@ Pytest has a built-in profiler. By typing this into your terminal:
 pytest --durations=5
 
 Pytest will run your suite and then print a leaderboard of the 5 absolute slowest tests.
+
+TEST PIPELINE AND Architecture
+
+tests/
+├── conftest.py                 # Global fixtures (DB connections, fake S3 buckets)
+├── test_models.py              # Tests the "Bouncer" (Pydantic schemas)
+├── test_transformations.py     # Tests the "Chef" (Pandas/Spark math and logic)
+└── test_extractors.py          # Tests API calls and database reads (often heavily mocked)

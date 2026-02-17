@@ -62,3 +62,37 @@ def calculate_ad_spend(cpc: float, clicks: int):
 def test_calculate_ad_spend():
   ad_spend = calculate_ad_spend(0.1, 3)
   assert ad_spend == pytest.approx(0.3)
+  
+  
+# ============================
+
+#. Test 4: The Grid Test
+
+# ============================
+
+import pandas as pd
+
+def filter_adults(df: pd.DataFrame):
+    # Keeps only rows where age is 18 or older, and resets the row numbers
+    adults = df[df['age'] >= 18].copy()
+    return adults.reset_index(drop=True)
+  
+
+# To test DataFrames, you must test the entire grid at once to ensure no rows were dropped or duplicated.  
+
+@pytest.mark.test_df
+def test_filter_adults():
+  
+  input_value = pd.DataFrame({
+    "name": ['jay', "stance", "Alice", "Bob"],
+    "age": [16, 32, 18, 8]
+  })
+  
+  expected_output = pd.DataFrame({
+    "name": ["stance", "Alice"],
+    "age": [32, 18]
+  })
+  
+  output_value = filter_adults(input_value)
+  # assert df.at[0, "name"] == "stance".    junior level testing
+  pd.testing.assert_frame_equal(output_value, expected_output)
