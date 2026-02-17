@@ -96,3 +96,32 @@ def test_filter_adults():
   output_value = filter_adults(input_value)
   # assert df.at[0, "name"] == "stance".    junior level testing
   pd.testing.assert_frame_equal(output_value, expected_output)
+  
+  
+# ============================
+
+#. Test 4: The Grid Test
+
+# ============================
+
+def build_db_url(config: dict):
+    user = config["user"]
+    pw = config["password"]
+    host = config["host"]
+    db = config["db"]
+    return f"postgresql://{user}:{pw}@{host}:5432/{db}"
+  
+@pytest.fixture
+def mock_db_config():
+  return {
+    "user": "jay",
+    "password": "123",
+    "host": "local",
+    "db": "test"
+  }
+  
+@pytest.mark.db_config
+def test_build_db_url(mock_db_config):
+  db_url = build_db_url(mock_db_config)
+  
+  assert db_url == "postgresql://jay:123@local:5432/test"
