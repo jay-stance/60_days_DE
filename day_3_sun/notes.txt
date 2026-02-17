@@ -268,3 +268,12 @@ Python
 def test_name_cleaner(raw_input, expected_output):
     assert clean_name(raw_input) == expected_output
 Now, if the test fails on a null value, your terminal will clearly state: FAILED test_name_cleaner[handles_null_values].
+
+Durations Reports (Fighting Slow Tests)
+As you build out pipelines, your test suite will eventually slow down because Data Engineering tests require heavy I/O operations (reading files, validating Pydantic models, interacting with databases). If your tests take 10 minutes to run, it breaks your flow.
+
+The Solution:
+Pytest has a built-in profiler. By typing this into your terminal:
+pytest --durations=5
+
+Pytest will run your suite and then print a leaderboard of the 5 absolute slowest tests.
