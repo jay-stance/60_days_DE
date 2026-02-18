@@ -208,11 +208,15 @@ def mock_requests_get(monkeypatch):
     # Mock the .json() method to return our fake data
     mock_resp.json.return_value = {"rate": "50,000.00"}
     
-    # Patch the 'get' method in the 'requests' module
-    monkeypatch.setattr(requests, "get", lambda *args, **kwargs: mock_resp)
+    # 2. Mock the 'get' function (the action itself)
+    mock_get_func = MagicMock(return_value=mock_resp)
     
-    return mock_resp  # Return the mock so we can inspect it in the test
+    # Patch the 'get' method in the 'requests' module
+    monkeypatch.setattr(requests, "get", mock_get_func)
+    
+    return mock_get_func  # Return the mock so we can inspect it in the test
 
+@pytest.mark.test_monkeypatch
 def test_get_crypto_price(mock_requests_get):
     # Act
     coin_price = get_crypto_price("BTC")
@@ -220,6 +224,9 @@ def test_get_crypto_price(mock_requests_get):
     # Assert 1: Check the return value
     assert coin_price == "50,000.00"
     mock_requests_get.assert_called_once()
+    
+    args, _ = mock_requests_get.call_args
+    assert "BTC.json" in args[0]
     
     # Assert 2: Verify the URL was constructed correctly (The "Pro" step)
     # Since we returned mock_resp, we can't easily check 'requests.get' 
@@ -244,3 +251,36 @@ def test_get_crypto_price_with_responses():
 
     # Assert
     assert price == "50,000.00"
+    
+    
+# ============================
+
+#. Test 9: The Assembly Line (parametrize)
+
+# ============================
+
+def classify_risk(amount: int):
+    if amount > 10000:
+        return "HIGH"
+    elif amount > 1000:
+        return "MEDIUM"
+    return "LOW"
+  
+@pytest.mark.risk_level
+@pytest.mark.parametrize(
+  'input_value, expected_output',
+  [
+    (12000, "HIGH"),
+    (4000, "MEDIUM"),
+    (500, "LOW")
+  ],
+  ids=[
+    "passed 12,000 - expecting high",
+    "passed 4,000 - especting medium",
+    "passed 500 - especting low"
+  ]
+  )
+def test_classify_risk(input_value, expected_output):
+  risk_level = classify_risk(input_value)
+  
+  assert risk_level == expected_output
