@@ -192,6 +192,7 @@ def test_file_saves(tmp_path):     # tmp_path is an inbuilt fixture, so you stil
 import pytest
 import requests
 from unittest.mock import MagicMock
+import responses
 
 def get_crypto_price(coin: str):
     # The real logic
@@ -218,7 +219,28 @@ def test_get_crypto_price(mock_requests_get):
     
     # Assert 1: Check the return value
     assert coin_price == "50,000.00"
+    mock_requests_get.assert_called_once()
     
     # Assert 2: Verify the URL was constructed correctly (The "Pro" step)
     # Since we returned mock_resp, we can't easily check 'requests.get' 
     # unless we store the lambda or use a different patching style.
+    
+# METHOD 2
+
+@responses.activate # This "turns on" the interceptor for this test
+def test_get_crypto_price_with_responses():
+    # Define the URL and what it should return
+    target_url = "https://api.coindesk.com/v1/bpi/currentprice/BTC.json"
+    
+    responses.add(
+        responses.GET, 
+        target_url,
+        json={"rate": "50,000.00"}, # The fake body
+        status=200                  # The fake status code
+    )
+
+    # Act
+    price = get_crypto_price("BTC")
+
+    # Assert
+    assert price == "50,000.00"
