@@ -157,3 +157,28 @@ def active_db_session():
 @pytest.mark.test_yield
 def test_db_is_active(active_db_session):
   assert active_db_session.is_active == True
+  
+
+# ============================
+
+#. Test 7: The I/O Test (tmp_path)
+
+# ============================
+
+import json
+from pathlib import Path
+
+def save_json(data: dict, file_path: Path):
+    with open(file_path, "w") as f:
+        json.dump(data, f)
+        
+@pytest.mark.tmp_path
+def test_file_saves(tmp_path):     # tmp_path is an inbuilt fixture, so you still need to pass it to the function
+  data = {"name": "jay", "level": "intermediate"}
+  file_path = tmp_path / "test.json"
+  
+  save_json(data, file_path)
+  
+  assert file_path.exists() == True
+  assert len(file_path.read_text()) > 1
+  
