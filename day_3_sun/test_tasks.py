@@ -284,3 +284,24 @@ def test_classify_risk(input_value, expected_output):
   risk_level = classify_risk(input_value)
   
   assert risk_level == expected_output
+  
+  
+# ============================
+
+# Test 10: The Conditional Skip
+
+# ============================
+
+import os
+
+def connect_to_snowflake():
+    # This crashes if the key is missing
+    key = os.environ["SNOWFLAKE_KEY"] 
+    return "Connected"
+
+@pytest.mark.skipif(not os.environ.get("SNOWFLAKE_KEY"), reason="Snowflakes credentials must be present")
+@pytest.mark.test_skip_condition
+def test_snowflake_connection():
+  connection_status = connect_to_snowflake()
+  
+  assert connection_status == "Connected"
