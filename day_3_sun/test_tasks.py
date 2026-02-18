@@ -328,3 +328,54 @@ def set_testmod_env(monkeypatch):
 def test_delete_table():
   delte_res = delete_table()
   assert delte_res == "Table Deleted"
+  
+
+# ============================
+
+# Test 12: The Integration Boss Battle (Final Exam)
+
+# ============================
+
+import requests
+import json
+from pathlib import Path
+
+def ingest_user_data(user_id: int, output_path: Path):
+    # 1. External Call (Needs Mocking)
+    response = requests.get(f"https://api.users.com/{user_id}")
+    data = response.json()
+    
+    # 2. Transformation (Needs Logic Check)
+    clean_data = {
+        "id": data["id"],
+        "email": data["email"].lower(), # Enforce lowercase
+        "status": "active"
+    }
+    
+    # 3. File I/O (Needs tmp_path)
+    with open(output_path, "w") as f:
+        json.dump(clean_data, f)
+        
+    return clean_data
+  
+@pytest.mark.complex_test
+@pytest.mark.parametrize("user_id, raw_email, expected_email", [
+  (1, 'JAY@gmail.com', 'jay@gmail.com'),
+  (2, 'Manda@gmail.com', 'manda@gmail.com'),
+])
+def test_ingest_user_data(tmp_path, monkeypatch, user_id, raw_email, expected_email):
+  mock_req = MagicMock()
+  mock_req.json.return_value = {"id": user_id, "email": raw_email}
+  mock_get_req = MagicMock(return_value=mock_req)
+  
+  monkeypatch.setattr(requests, "get", mock_get_req)
+  
+  file_path = tmp_path / f"{user_id}.json"
+  result = ingest_user_data(user_id, file_path)
+  
+  assert result["email"] == expected_email
+  mock_get_req.assert_called_once()
+  
+  assert file_path.exists()
+  file_data = json.loads(file_path.read_text())
+  assert file_data["email"] == expected_email
