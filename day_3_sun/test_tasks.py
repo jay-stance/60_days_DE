@@ -125,3 +125,35 @@ def test_build_db_url(mock_db_config):
   db_url = build_db_url(mock_db_config)
   
   assert db_url == "postgresql://jay:123@local:5432/test"
+  
+  
+# ============================
+
+#. Test 6: The Cleanup Test (yield)
+
+# ============================
+
+class DatabaseConnection:
+    def __init__(self, db_name: str):
+        self.db_name = db_name
+        self.is_active = False
+
+    def connect(self):
+        self.is_active = True
+
+    def close(self):
+        self.is_active = False
+
+@pytest.fixture(scope="function")
+def active_db_session():
+  db_connection = DatabaseConnection("test_db")
+  
+  db_connection.connect()
+  
+  yield db_connection
+  
+  db_connection.close()
+  
+@pytest.mark.test_yield
+def test_db_is_active(active_db_session):
+  assert active_db_session.is_active == True
