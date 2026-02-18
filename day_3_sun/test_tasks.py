@@ -182,3 +182,43 @@ def test_file_saves(tmp_path):     # tmp_path is an inbuilt fixture, so you stil
   assert file_path.exists() == True
   assert len(file_path.read_text()) > 1
   
+  
+# ============================
+
+#. Test 8: The Hijack Test (monkeypatch)
+
+# ============================
+
+import pytest
+import requests
+from unittest.mock import MagicMock
+
+def get_crypto_price(coin: str):
+    # The real logic
+    response = requests.get(f"https://api.coindesk.com/v1/bpi/currentprice/{coin}.json")
+    return response.json()["rate"]
+
+@pytest.fixture
+def mock_requests_get(monkeypatch):
+    """
+    Fixture to intercept requests.get and return a controlled mock object.
+    """
+    mock_resp = MagicMock()
+    # Mock the .json() method to return our fake data
+    mock_resp.json.return_value = {"rate": "50,000.00"}
+    
+    # Patch the 'get' method in the 'requests' module
+    monkeypatch.setattr(requests, "get", lambda *args, **kwargs: mock_resp)
+    
+    return mock_resp  # Return the mock so we can inspect it in the test
+
+def test_get_crypto_price(mock_requests_get):
+    # Act
+    coin_price = get_crypto_price("BTC")
+    
+    # Assert 1: Check the return value
+    assert coin_price == "50,000.00"
+    
+    # Assert 2: Verify the URL was constructed correctly (The "Pro" step)
+    # Since we returned mock_resp, we can't easily check 'requests.get' 
+    # unless we store the lambda or use a different patching style.
