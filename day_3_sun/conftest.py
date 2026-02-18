@@ -30,3 +30,7 @@ def populated_db(db_connection): # <-- MAGIC: It requests the first fixture!
     
     # 3. Yield the now-populated connection to the actual test
     yield db_connection
+    
+@pytest.fixture(autouse=True)
+def set_testmod_env(monkeypatch):
+  monkeypatch.setenv("APP_MODE", "TEST")

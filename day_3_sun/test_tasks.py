@@ -285,7 +285,6 @@ def test_classify_risk(input_value, expected_output):
   
   assert risk_level == expected_output
   
-  
 # ============================
 
 # Test 10: The Conditional Skip
@@ -305,3 +304,27 @@ def test_snowflake_connection():
   connection_status = connect_to_snowflake()
   
   assert connection_status == "Connected"
+
+  
+# ============================
+
+# Test 11: The Invisible Shield (autouse=True)
+
+# ============================
+
+import os
+
+def delete_table():
+    if os.environ.get("APP_MODE") != "TEST":
+        raise RuntimeError("UNSAFE! Attempting to delete in Production!")
+    return "Table Deleted"
+  
+# would be written in conftest.py
+@pytest.fixture(autouse=True)
+def set_testmod_env(monkeypatch):
+  monkeypatch.setenv("APP_MODE", "TEST")
+
+@pytest.mark.test_del_table
+def test_delete_table():
+  delte_res = delete_table()
+  assert delte_res == "Table Deleted"
