@@ -1,0 +1,535 @@
+Docker is an open platform for developing, shipping, and running applications. Docker enables you to separate your applications from your infrastructure so you can deliver software quickly.
+
+Docker provides the ability to package and run an application in a loosely isolated environment called a container.
+
+Professional organizers who can master the "one-stop-shop" model—partnering with reliable venues and vendors to offer all-inclusive, inflation-hedged packages—will dominate the market.[14] Meanwhile, the "Blue Ocean" for new platforms lies in serving the un-serviced amateur market: the first-time organizers who are currently drowning in a sea of unverified WhatsApp chats and manual budget sheets.[26, 31] By providing a layer of "Trust Infrastructure"—comprising escrow payments, verified ratings, and automated logistics—a platform can unlock a multi-billion Naira opportunity while bringing much-needed standardization to one of Africa's most vibrant economic sectors.[28, 33]
+
+Good.
+
+Now we’re talking properly.
+
+We’re going to ignore commands, ignore code, ignore “how to build images”.
+
+This is pure **theory, internals, architecture, and under-the-hood mechanics** of Docker.
+
+By the end of this, you should be able to:
+
+* Explain containers at kernel level
+* Explain how Docker actually creates a container
+* Explain how images are structured internally
+* Explain networking internals
+* Explain storage internals
+* Explain runtime architecture (dockerd → containerd → runc)
+* Answer deep interview questions confidently
+
+---
+
+# PART 1 — What Docker REALLY Is
+
+Docker is **not** a virtualization technology.
+
+Docker is:
+
+> A high-level platform that uses Linux kernel features (namespaces + cgroups + union filesystems) to create isolated processes called containers.
+
+The container is NOT magic.
+
+A container is just:
+
+> A normal Linux process that has isolation boundaries applied to it.
+
+There is no mini OS.
+There is no hypervisor.
+There is no guest kernel.
+
+All containers share the **host kernel**.
+
+That is fundamental.
+
+---
+
+# PART 2 — Containers vs Virtual Machines (Deep Comparison)
+
+## Virtual Machine
+
+VM architecture:
+
+Hardware
+↓
+Hypervisor (KVM, VMware, Hyper-V)
+↓
+Guest OS (own kernel)
+↓
+Libraries
+↓
+App
+
+Each VM has:
+
+* Its own kernel
+* Its own OS
+* Heavy memory overhead
+* Full hardware emulation
+
+Isolation level: Hardware-level
+
+---
+
+## Container
+
+Container architecture:
+
+Hardware
+↓
+Host OS (single kernel)
+↓
+Docker daemon
+↓
+Container process (isolated using kernel features)
+
+Each container:
+
+* Shares host kernel
+* Has isolated process tree
+* Has isolated network stack
+* Has isolated filesystem view
+* Has resource limits
+
+Isolation level: Kernel-level
+
+This is why containers are:
+
+* Lightweight
+* Fast to start
+* Small
+* Efficient
+
+---
+
+# PART 3 — The Core Kernel Primitives
+
+Docker relies on 3 fundamental Linux technologies:
+
+1. Namespaces
+2. Control Groups (cgroups)
+3. Union Filesystems
+
+Everything Docker does builds on these.
+
+---
+
+# PART 4 — Namespaces (Isolation)
+
+Namespaces isolate system resources.
+
+Think of namespaces as:
+
+> “What this process is allowed to see.”
+
+There are multiple namespace types.
+
+---
+
+## 1. PID Namespace
+
+Isolates process IDs.
+
+Inside a container:
+
+* The container thinks its main process is PID 1.
+* It cannot see host processes.
+
+Outside:
+
+* The host sees the real PID.
+
+Interview Question:
+Why is PID 1 special inside containers?
+
+Answer:
+PID 1 has special signal handling behavior in Linux. If you don’t manage it correctly, zombie processes can accumulate.
+
+---
+
+## 2. NET Namespace
+
+Each container has its own:
+
+* Network interfaces
+* Routing tables
+* ARP tables
+* Port bindings
+* Firewall rules
+
+This is why containers have their own IP addresses.
+
+Docker connects container network namespaces using:
+
+* Virtual Ethernet pairs (veth)
+* Linux bridges
+* iptables NAT rules
+
+---
+
+## 3. MNT Namespace (Mount Namespace)
+
+Isolates filesystem mount points.
+
+Each container sees:
+
+* Its own root filesystem
+* Its own mount tree
+
+Even though the actual files exist on the host.
+
+---
+
+## 4. UTS Namespace
+
+Isolates hostname.
+
+Inside container:
+
+* `hostname` can be different from host.
+
+---
+
+## 5. IPC Namespace
+
+Isolates shared memory and message queues.
+
+---
+
+## 6. USER Namespace
+
+Maps container user IDs to different host IDs.
+
+Critical for security:
+Container root (UID 0) ≠ Host root.
+
+This prevents privilege escalation.
+
+---
+
+# PART 5 — cgroups (Resource Control)
+
+Namespaces isolate visibility.
+
+cgroups limit resource usage.
+
+cgroups control:
+
+* CPU usage
+* Memory usage
+* Block I/O
+* Network bandwidth
+* PIDs limit
+
+Example conceptually:
+
+You can tell kernel:
+
+> This process group may only use 512MB RAM and 1 CPU core.
+
+If container exceeds memory:
+Kernel OOM kills it.
+
+Deep Interview Angle:
+Difference between soft limit and hard limit in cgroups?
+What happens when memory limit is reached?
+How does CPU throttling work?
+
+---
+
+# PART 6 — Union Filesystems (Layered Images)
+
+This is where Docker becomes elegant.
+
+Docker images are layered filesystems.
+
+Each layer:
+
+* Is read-only
+* Is immutable
+* Is content-addressable (hash based)
+
+When you build an image:
+
+Layer 1: Base OS
+Layer 2: Install Python
+Layer 3: Install dependencies
+Layer 4: Add app files
+
+Each layer only stores differences from previous layer.
+
+---
+
+## How Containers Use These Layers
+
+When a container starts:
+
+Docker creates:
+
+* A writable layer on top
+* All underlying layers remain read-only
+
+This is implemented using:
+
+OverlayFS (overlay2 driver)
+
+Think of it like:
+
+Lower layers = immutable stack
+Upper layer = temporary writable changes
+
+If container is deleted:
+Writable layer is deleted.
+
+Image layers remain untouched.
+
+---
+
+## Why This Matters
+
+* Fast builds (layer caching)
+* Storage efficiency
+* Content deduplication
+* Fast container startup
+
+Deep Interview Question:
+Why does changing a line early in a Dockerfile invalidate cache?
+
+Answer:
+Because layers depend on hash of previous layers. Changing one layer changes the hash chain.
+
+---
+
+# PART 7 — Docker Architecture Internals
+
+Now we go deep.
+
+Docker is not a single binary doing everything.
+
+Architecture:
+
+Docker CLI
+↓
+Docker Daemon (dockerd)
+↓
+containerd
+↓
+runc
+↓
+Linux Kernel
+
+---
+
+## Step-by-step container creation flow
+
+1. You run `docker run`
+2. CLI sends REST API call to dockerd
+3. dockerd checks if image exists
+4. dockerd uses containerd to:
+
+   * Prepare container filesystem
+   * Setup namespaces
+   * Setup cgroups
+5. containerd calls runc
+6. runc uses Linux syscalls:
+
+   * clone()
+   * setns()
+   * mount()
+   * cgroup APIs
+7. Kernel spawns the container process
+
+That’s it.
+
+Docker does not run the container.
+The kernel does.
+
+Docker is orchestration glue.
+
+---
+
+# PART 8 — containerd and runc
+
+## runc
+
+Implements OCI runtime specification.
+
+Its job:
+Take a config.json and create a container using Linux syscalls.
+
+It is extremely minimal.
+
+## containerd
+
+High-level container lifecycle manager:
+
+* Pull images
+* Manage snapshots
+* Manage container state
+
+Docker uses containerd internally.
+
+Kubernetes also uses containerd.
+
+This separation makes Docker modular.
+
+---
+
+# PART 9 — Networking Internals
+
+Default mode: bridge network
+
+Docker:
+
+1. Creates a Linux bridge (docker0)
+2. Creates veth pair
+
+   * One end inside container
+   * One end attached to bridge
+3. Sets up iptables NAT rules
+
+When container sends traffic:
+
+* Goes through veth
+* To bridge
+* NATed via host IP
+
+Overlay networks use VXLAN tunneling.
+
+Interview Question:
+Difference between bridge and host mode?
+How does port mapping actually work?
+What is DNAT vs SNAT?
+
+---
+
+# PART 10 — Security Model
+
+Containers are not as isolated as VMs.
+
+Security layers include:
+
+* Namespaces
+* cgroups
+* Seccomp (syscall filtering)
+* AppArmor / SELinux
+* Capabilities (Linux capability dropping)
+
+Docker drops dangerous capabilities by default.
+
+But container breakout is possible if misconfigured.
+
+Deep Interview Angle:
+Why running containers as root is dangerous?
+What is rootless Docker?
+How do user namespaces improve isolation?
+
+---
+
+# PART 11 — Storage Drivers
+
+Docker storage driver manages image layers.
+
+Common driver: overlay2
+
+It merges:
+
+* lowerdir (read-only layers)
+* upperdir (writable layer)
+* workdir (internal operations)
+
+Performance considerations:
+
+* Small files perform differently
+* High write workloads better handled by volumes
+
+Deep Interview:
+Difference between bind mounts and volumes at kernel level?
+
+---
+
+# PART 12 — Image Distribution & Registry Internals
+
+Docker images are:
+
+* Tar archives of layers
+* Identified by SHA256 hashes
+* Described by a manifest file
+
+Registry stores:
+
+* Layer blobs
+* Manifest JSON
+
+When pulling:
+Client downloads only missing layers.
+
+This makes image pulls incremental.
+
+---
+
+# PART 13 — OCI (Open Container Initiative)
+
+OCI standardizes:
+
+* Image format
+* Runtime behavior
+
+This prevents Docker lock-in.
+
+containerd, CRI-O, Podman all follow OCI.
+
+---
+
+# PART 14 — Failure Scenarios You Must Understand
+
+* What happens when container exceeds memory?
+* What happens if PID 1 crashes?
+* What happens if network namespace breaks?
+* What happens if storage driver corrupts?
+* What happens when daemon crashes?
+
+Containers continue running even if dockerd dies.
+Because kernel owns the process.
+
+That is critical.
+
+---
+
+# PART 15 — What Senior Interviewers Ask
+
+You may get:
+
+* Explain how Docker creates isolation
+* Explain overlay filesystem
+* Explain container lifecycle
+* Explain how Kubernetes runs containers
+* Explain container security risks
+* Compare containerd and runc
+* Explain how image layers work internally
+* Explain how networking is implemented
+* Why containers are faster than VMs
+* What happens during `docker run` internally
+
+If you can explain everything above clearly,
+you are not beginner level.
+
+---
+
+Now I want to know:
+
+Do you want next:
+
+A) Deep dive only into Linux namespaces (with syscall-level explanation)
+B) Deep dive only into overlay filesystem internals
+C) Deep dive only into Docker networking internals
+D) Deep dive only into security model and container escape
+E) Full container lifecycle trace from `docker run` to kernel execution
+
+Pick one.
+
+We go even deeper.
