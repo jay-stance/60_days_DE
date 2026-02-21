@@ -616,3 +616,16 @@ Minimizing image size (Spark images get huge)
   Running containers as non-root
   Reducing CVE exposure
   Deterministic builds (pin versions)
+
+ref for multi layer builds 
+
+The moment Docker reads a new FROM statement, it hits a giant "Reset" button. It creates a brand new, 100% isolated container based only on that new image, and it completely ignores everything you did above it.
+
+
+
+==============================
+
+      DOCKER COMPOSE 
+
+==============================
+
