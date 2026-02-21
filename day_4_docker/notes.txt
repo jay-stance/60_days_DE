@@ -579,3 +579,40 @@ What Are Metadata Instructions?
   User
 
 But they do NOT change files.
+
+Complete List of Metadata Instructions
+These do NOT create filesystem layers:
+
+🔹 CMD
+  Defines default runtime command.
+
+🔹 ENTRYPOINT
+  Defines fixed executable.
+
+🔹 ENV
+  Adds environment variables to image config.
+
+🔹 EXPOSE
+  Documents port usage.
+
+🔹 LABEL
+  Adds metadata labels.
+
+🔹 USER
+  Changes default user for container runtime.
+
+
+The Golden Rule of Docker Builds
+To understand this, you must memorize this rule: Docker Image Layers can only capture what is inside the Union Filesystem. They cannot capture what is inside a Volume.
+
+🧠 Data Engineer-Specific Dockerfile Knowledge
+
+You must understand:
+Minimizing image size (Spark images get huge)
+
+  Using multi-stage builds
+  Caching Python dependencies
+  Avoid copying raw data
+  Running containers as non-root
+  Reducing CVE exposure
+  Deterministic builds (pin versions)
