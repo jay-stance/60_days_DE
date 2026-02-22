@@ -629,3 +629,33 @@ The moment Docker reads a new FROM statement, it hits a giant "Reset" button. It
 
 ==============================
 
+Docker Compose orchestrates multiple containers.
+
+Instead of:
+
+docker run ...
+docker run ...
+docker network create ...
+docker volume create ...
+
+You define everything declaratively in:
+
+docker-compose.yml
+
+Basic Compose File Structure
+version: "3.9"
+
+services:
+  service_name:
+    image: ...
+    build: ...
+    ports:
+    volumes:
+    environment:
+    depends_on:
+    networks:
+
+volumes:
+
+networks:
+
