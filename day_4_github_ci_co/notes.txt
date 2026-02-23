@@ -9,3 +9,82 @@ Deploying your application every time a release is created
 Adding a label whenever a new issue is opened
 
 An event is a specific activity in a repository that triggers a workflow run. For example, an activity can originate from GitHub when someone creates a pull request, opens an issue, or pushes a commit to a repository. 
+
+
+A job is a set of steps in a workflow that is executed on the same runner. Each step is either a shell script that will be executed, or an action that will be run. Steps are executed in order and are dependent on each other.
+
+An action is a pre-defined, reusable set of jobs or code that performs specific tasks within a workflow, reducing the amount of repetitive code you write in your workflow files. Actions can perform tasks such as:
+
+Pulling your Git repository from GitHub
+Setting up the correct toolchain for your build environment
+Setting up authentication to your cloud provider
+
+A runner is a server that runs your workflows when they're triggered. Each runner can run a single job at a time. GitHub provides Ubuntu Linux, Microsoft Windows, and macOS runners to run your workflows. Each workflow run executes in a fresh, newly-provisioned virtual machine.
+
+
+The GitHub Actions Hierarchy (The Russian Nesting Doll)
+Think of GitHub Actions like an automated factory.
+
+    The Event (The Trigger): The factory alarm goes off. ("Hey, Jay just pushed new code to the main branch!")
+
+    The Workflow (The Factory Manager): The manager wakes up, looks at the .yml file you wrote, and says, "Okay, I see the instructions. I need to run the testing phase, and if that passes, the deployment phase."
+
+    The Runner (The Workbench): GitHub spins up a blank, temporary Ubuntu Linux server just for you. This is where the actual work will happen.
+
+    The Job (The Phase): A major grouping of work. For example, "Test the Code" is one Job. "Deploy the Docker Container" is a second Job. Each Job gets its own Runner (Workbench).
+
+    The Step (The To-Do List): Inside a Job, you have a chronological list of things to do. "Step 1: Download Python. Step 2: Install dependencies. Step 3: Run Pytest."
+
+    The Action (The Power Tool): Instead of writing 50 lines of bash script to download your code into the Runner, you use a pre-built "Action" that someone else wrote. It's a plug-and-play shortcut.
+
+The Golden Rule of the Hierarchy:Events trigger Workflows $\rightarrow$ which contain Jobs $\rightarrow$ which execute on Runners $\rightarrow$ and are made of Steps $\rightarrow$ which use pre-built Actions or custom shell scripts.
+
+
+That means, a typical github actins template file would look like this 
+
+Name: workflow name 
+
+on: 
+  ... which events should trigger it 
+  push:
+    [branches]
+  pull_request:
+
+jobs:
+  job_name
+    runs-on: ubuntu-latest
+
+    steps: ..... the steps in the job, remb each job runs in its own runner 
+      name: install dependencies
+      run: pip install -r requirements.txt
+      uses: actions/checkout@v4 ... downloads and uses a predefined action 
+
+
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        run: |
+          sudo apt update
+          sudo apt install -y python3 python3-pip
+
+      - name: Install dependencies
+        run: pip3 install -r requirements.txt
+
+      - name: Run tests
+        run: pytest
+
+      - name: Build Docker image
+        run: docker build -t myapp:${{ github.sha }} .
