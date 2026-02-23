@@ -88,3 +88,54 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t myapp:${{ github.sha }} .
+
+
+Understanding ${{ }} Expressions
+GitHub uses expression syntax:
+
+${{ github.sha }}
+
+This accesses context variables.
+
+Common contexts:
+
+    github.sha
+    github.ref
+    github.event_name
+    secrets.MY_SECRET
+      Defined in:
+      Repo → Settings → Secrets
+    env.VAR_NAME
+
+Job Dependencies
+
+Jobs can depend on each other.
+
+Example:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Testing"
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Building"
+
+Matrix lets you define a template once and generate multiple jobs automatically.
+
+Basic Matrix Example
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: [3.9, 3.10, 3.11]
+
+    steps:
+      - name: Print version
+        run: echo "Testing on ${{ matrix.python-version }}"
