@@ -1,0 +1,62 @@
+Data engineering is the development, implementation, and maintenance
+of systems and processes that take in raw data and produce high-quality,
+consistent information that supports downstream use cases, such as
+analysis and machine learning. Data engineering is the intersection of
+security, data management, DataOps, data architecture, orchestration,
+and software engineering. A data engineer manages the data engineering
+lifecycle, beginning with getting data from source systems and ending
+with serving data for use cases, such as analysis or machine learning.
+
+The data engineering lifecycle also has a notion of undercurrents—critical
+ideas across the entire lifecycle. These include security, data management,
+DataOps, data architecture, orchestration, and software engineering. 
+
+ a data engineer juggles a lot of
+complex moving parts and must constantly optimize along the axes of cost,
+agility, scalability, simplicity, reuse, and interoperability 
+
+3 STAGES OF COMPANIES WITH DATA 
+
+- STARTING WITH DATA 
+
+  A data engineer should focus on the following in organizations getting
+  started with data:
+  - Get buy-in from key stakeholders, including executive management.
+  Ideally, the data engineer should have a sponsor for critical initiatives
+  to design and build a data architecture to support the company’s goals.
+  - Define the right data architecture (usually solo, since a data architect
+  likely isn’t available). This means determining business goals and the
+  competitive advantage you’re aiming to achieve with your data
+  initiative. Work toward a data architecture that supports these goals.
+  - Identify and audit data that will support key initiatives and operate
+  within the data architecture you designed.
+  - Build a solid data foundation for future data analysts and data
+  scientists to generate reports and models that provide competitive
+  value. In the meantime, you may also have to generate these reports
+  and models until this team is hired.
+  - Get and talk to people 
+
+
+- SCALING WITH DATA 
+
+  In organizations that are in stage 2 of data maturity, a data engineer’s goals
+  are to do the following:
+  - Establish formal data practices
+  - Create scalable and robust data architectures
+  - Adopt DevOps and DataOps practices
+  - Build systems that support ML
+  - Continue to avoid undifferentiated heavy lifting and customize onlywhen a competitive advantage results
+
+
+- LEADING WITH DATA 
+
+  n organizations in stage 3 of data maturity, a data engineer will continue
+  building on prior stages, plus they will do the following:
+  - Create automation for the seamless introduction and usage of new data
+  - Focus on building custom tools and systems that leverage data as acompetitive advantage
+  - Focus on the “enterprisey” aspects of data, such as data management(including data governance and quality) and DataOps
+  - Deploy tools that expose and disseminate data throughout the organization, including data catalogs, data lineage tools, and metadata management systems
+  - Collaborate efficiently with software engineers, ML engineers, analysts, and others
+  - Create a community and environment where people can collaborate and speak openly, no matter their role or position
+
+Data engineering is a holistic practice; the best data engineers view their responsibilities through business and technical lenses.
