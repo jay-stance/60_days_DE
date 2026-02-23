@@ -659,3 +659,120 @@ volumes:
 
 networks:
 
+How to scale services
+To run multiple identical copies of a container to handle heavy traffic, you execute a specific terminal command:
+docker compose up --scale python_api=5
+
+
+Docker and Docker compose commands you would use more often 
+
+  docker build -t myapp:sha .
+  docker run --rm -it -v $(pwd)/data:/data:ro myapp:sha
+  docker exec -it <container> sh
+  docker logs -f <container>
+  docker ps -a
+  docker images
+  docker pull <image>
+  docker push <registry>/<repo>:<tag>
+  docker image ls --format "{{.Repository}}:{{.Tag}} {{.Size}}"
+  docker inspect <container|image>
+  docker-compose up --build -d   # or `docker compose up --build -d`
+  docker-compose down -v
+  docker system prune -af
+
+
+Phase 1: The Builder (Creating and Starting)
+These are the commands you use to turn your code into running applications.
+
+1. docker build -t my-app:v1 .
+
+What it does: Reads your Dockerfile and compiles it into an Image.
+
+The Flags:
+
+-t my-app:v1 (Tag): This gives your image a human-readable name (my-app) and a version (v1). If you leave off the :v1, Docker automatically tags it as :latest.
+
+. (The Dot): This is crucial. It tells Docker: "Look in my current folder for the Dockerfile and the source code."
+
+2. docker run -d -p 8080:80 --name api_server my-app:v1
+
+What it does: Takes your baked image and boots it up as an isolated Container.
+
+The Flags:
+
+-d (Detached): Runs the container in the background. If you don't use this, your terminal will be frozen showing the container's logs, and if you press Ctrl+C, the container dies.
+
+-p 8080:80 (Port): Punches the hole from your laptop (8080) to the container (80).
+
+--name api_server: Names the running container so you don't have to memorize a random 12-character ID (like a1b2c3d4e5f6) to control it later.
+
+Phase 2: The Detective (Debugging and Inspecting)
+When things inevitably break, you do not guess. You use these commands to figure out exactly what the Linux kernel or your Python script is complaining about.
+
+3. docker ps
+
+What it does: Lists all containers that are currently running. It shows their names, IDs, and what ports are open.
+
+The Senior Trick (docker ps -a): The -a stands for "All". If your Python script crashes instantly, docker ps will show nothing because the container is dead. docker ps -a shows you the graveyard of dead containers and exactly what time they crashed.
+
+4. docker logs -f api_server
+
+What it does: Prints the console output (the print() statements and error tracebacks) from your Python script inside the container.
+
+The Flag (-f): Stands for "Follow". Instead of just printing the past logs and quitting, it streams the logs live to your terminal. As your pipeline processes data, you watch it happen in real-time.
+
+5. docker exec -it api_server bash (The Matrix Command)
+
+What it does: This is the most powerful debugging tool you have. It punches a hole through the container's isolation and drops you into a live terminal shell inside the running container.
+
+The Flags:
+
+-it (Interactive TTY): Tells Docker to keep the channel open and link your keyboard to the container's internal terminal.
+
+bash (or sh): The specific program you want to run inside. You are asking for a Linux command line.
+
+Why use it? If your app can't reach the database, you exec into the container and type ping database to see if the network is actually connected.
+
+Phase 3: The Orchestrator (Docker Compose)
+When you are using your docker-compose.yml file, you completely abandon docker build and docker run. Compose handles it all simultaneously.
+
+6. docker compose up -d
+
+What it does: Reads the YAML file, builds any Dockerfile it finds, creates the networks, sets up the volumes, and starts all the containers in the exact right order.
+
+The Flag (-d): Again, "Detached". Starts the whole neighborhood in the background so you can keep using your terminal.
+
+7. docker compose down
+
+What it does: The exact opposite. It gracefully shuts down the containers, deletes the temporary networks, and cleans up the environment.
+
+The Senior Trick (docker compose down -v): By default, down leaves your Volumes (your database data) safely on your hard drive. If you want to completely nuke the environment and wipe the database clean to start fresh, adding -v destroys the volumes too.
+
+Phase 4: The Janitor (Cleaning Up)
+Docker is notorious for eating up your laptop's hard drive space. Because it saves every layer and every dead container, it can easily consume 50GB+ of hidden space if you don't clean it.
+
+8. docker stop api_server & docker rm api_server
+
+What it does: stop gently asks the container to shut down. rm (Remove) permanently deletes the container from the graveyard (docker ps -a). You cannot rm a container that is currently running.
+
+9. docker rmi my-app:v1
+
+What it does: Removes the Image (the blueprint) from your hard drive to save space.
+
+10. docker system prune -a (The Nuclear Option)
+
+What it does: This is the command you run when your laptop says "Disk Space Full." It automatically finds and deletes every stopped container, every unused network, and every dangling image layer that isn't currently attached to a running container. It brings your system back to a pristine, clean state.
+
+
+
+Here is the absolute simplest way to separate them in your mind:
+
+  - docker run creates a BRAND NEW container from a blueprint (an Image).
+  - docker exec breaks into an ALREADY RUNNING container.
+
+
+If you want the containers to stay exactly as they are on your hard drive so you can wake them up tomorrow faster, you use these commands instead:
+
+docker compose stop: This gracefully powers down the containers but leaves them existing on your hard drive.
+
+docker compose start: This wakes those exact same containers back up. No new containers are created.
