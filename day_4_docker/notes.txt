@@ -763,6 +763,33 @@ What it does: Removes the Image (the blueprint) from your hard drive to save spa
 
 What it does: This is the command you run when your laptop says "Disk Space Full." It automatically finds and deletes every stopped container, every unused network, and every dangling image layer that isn't currently attached to a running container. It brings your system back to a pristine, clean state.
 
+docker image inspect <image>
+Show metadata (Entrypoint, Env, Layers, Config JSON).
+
+docker history <image>
+Shows image layers and sizes (see which instruction added weight).
+
+docker save -o image.tar <image>
+docker load -i image.tar
+Export/import image tarball (useful to move images without registry).
+
+
+docker run [flags] <image> [command]
+Common flags:
+
+-d run detached
+
+  -it interactive + TTY
+  --rm remove container on exit
+  -p host:container publish ports
+  -e KEY=val set env var
+  --env-file .env
+  -v host_path:container_path[:ro|:cached|:delegated] mount (use :ro for data safety)
+  --mount type=volume,... (recommended advanced mount syntax)
+
+`--memory=4g --cpus=2 resource limits
+Example: docker run --rm -it -v $PWD/tests:/app/tests myetl:latest pytest
+
 
 
 Here is the absolute simplest way to separate them in your mind:
@@ -776,3 +803,21 @@ If you want the containers to stay exactly as they are on your hard drive so you
 docker compose stop: This gracefully powers down the containers but leaves them existing on your hard drive.
 
 docker compose start: This wakes those exact same containers back up. No new containers are created.
+
+Advanced flags & workflows (what senior devs use)
+
+--rm on docker run for ephemeral containers.
+
+--entrypoint override ENTRYPOINT: docker run --rm --entrypoint /bin/sh image.
+
+--env-file to load many env vars: docker run --env-file .env myimage
+
+--security-opt seccomp=... and --cap-drop ALL --cap-add NET_BIND_SERVICE to tighten capabilities.
+
+--health-cmd & HEALTHCHECK in Dockerfile; docker inspect shows health state.
+
+Use --log-driver to change logging (e.g., fluentd, awslogs).
+
+docker context use <context> to target remote Docker host or cloud (for multi-host work).
+
+docker swarm init / docker stack deploy (if using Swarm).
