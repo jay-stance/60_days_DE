@@ -139,3 +139,152 @@ jobs:
     steps:
       - name: Print version
         run: echo "Testing on ${{ matrix.python-version }}"
+
+What Actually Happens Internally
+
+GitHub does this behind the scenes:
+It expands this into:
+
+  Job 1:
+  python-version = 3.9
+
+  Job 2:
+  python-version = 3.10
+
+  Job 3:
+  python-version = 3.11
+
+Inside the job, GitHub injects a variable called matrix.
+
+Important: Matrix is Job-Level, Not Step-Level
+The entire job is duplicated.
+Not just the step.
+Everything inside the job runs multiple times.
+
+Multi-Dimensional Matrix
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: [3.9, 3.10]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Show combination
+        run: echo "OS: ${{ matrix.os }}, Python: ${{ matrix.python-version }}"
+
+GitHub generates all combinations.
+
+This is called Cartesian product.
+
+You get:
+
+ubuntu + 3.9
+ubuntu + 3.10
+windows + 3.9
+windows + 3.10
+
+So 2 × 2 = 4 jobs.
+
+Each combination runs separately.
+
+if one job in the matrix fails, every other one fails, unless you specify otherwise
+strategy:
+  fail-fast: false
+  matrix:
+    python-version: [3.9, 3.10, 3.11]
+
+Advanced: Excluding Combinations
+
+Sometimes you don’t want every combination.
+
+Example:
+
+strategy:
+  matrix:
+    os: [ubuntu-latest, windows-latest]
+    python-version: [3.9, 3.10]
+    exclude:
+      - os: windows-latest
+        python-version: 3.9
+
+Now Windows + 3.9 won’t run.
+
+You control exact combinations.
+
+Artifacts are used to store and pass files across different jobs in github workflow. cod ordinarily ever job clears all its state before entering the next job. but with artifcats we can pass a file eg report or build wheels from one job to another
+
+ARTIFACTS IN ACTION 
+
+name: Python Data Pipeline CI
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  # ==========================================
+  # JOB 1: THE BUILDER (Runs once)
+  # ==========================================
+  build_package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Compile heavy dependencies into a Wheel
+        run: |
+          pip install wheel
+          # This command compiles the code and saves it in a folder called 'dist/'
+          pip wheel . --wheel-dir=dist/ 
+
+      - name: Upload the Wheel Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-wheel-files  # We name the USB drive
+          path: dist/                 # We upload the whole 'dist' folder
+
+
+  # ==========================================
+  # JOB 2: THE MATRIX (Runs 3 times in parallel)
+  # ==========================================
+  test_matrix:
+    # THE MAGIC: This forces the matrix to wait for Job 1 to finish successfully!
+    needs: build_package 
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+
+    steps:
+      - name: Checkout Code (Need the test files)
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # THE RETRIEVAL: We plug the virtual USB drive into this new server
+      - name: Download the Wheel Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: compiled-wheel-files  # Must match the exact name from Job 1
+          path: downloaded-wheels/    # Where to save it on this new server
+
+      - name: Install the pre-compiled Artifact and Run Tests
+        run: |
+          # Install the .whl file we downloaded instead of building from scratch
+          pip install downloaded-wheels/*.whl
+          
+          # Run the actual tests
+          pytest tests/
