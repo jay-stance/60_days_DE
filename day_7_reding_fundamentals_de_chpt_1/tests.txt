@@ -1,0 +1,361 @@
+# Docker & Docker-Compose — 20 Tests (data-engineering focus)
+
+Nice — here are 20 test questions. No answers, no big hints — just think, write, and crack them. Good luck.
+
+1. You change a single line in a source file near the top of your Dockerfile; subsequent builds suddenly take much longer. Explain exactly why that happens and describe three concrete ways to avoid the repeated slow rebuilds.
+
+2. You run `docker build .` and the build uploads 10GB of files to the daemon even though your Dockerfile is tiny. Explain why this happened and show how you would prevent it (name the file and a few entries you’d add).
+
+3. Explain the difference between `CMD` and `ENTRYPOINT` at runtime and give two real-world scenarios (data pipelines, scheduled jobs) where you’d prefer one over the other.
+
+4. Describe, step-by-step and at the syscall/kernel level, what happens from the moment a `docker run` command is issued to when the application process starts inside the container. Mention the components involved (`dockerd`, `containerd`, `runc`, kernel primitives).
+
+5. You see a container running PID 1 that does not reap child processes, and zombie processes accumulate. Why does this happen in containers and how would you fix it in production ETL workers?
+
+6. Compare and contrast bind mounts, named volumes, and tmpfs in Docker. For each type, give one concrete data-engineering use case and any pitfalls to watch for (performance, portability, backups).
+
+7. A Postgres container in your `docker-compose` stack uses a named volume. Explain exactly where the data lives on the host, how to produce a consistent backup of that volume from the host, and how to restore it to a new volume.
+
+8. You build a Python ETL image that weighs 1.5GB. List five targeted optimizations you would apply to reduce the image size by at least 50%, and explain why each helps.
+
+9. Explain how Docker’s union/overlay filesystem implements image layers and the writable container layer. Specifically: where do file writes go, what does copy-up mean, and what happens when you delete a file inside the container?
+
+10. Describe how Docker networking works for the default bridge network. Explain how port mapping (e.g., `-p 9092:9092`) functions at the iptables level and why a service inside a compose network might be reachable via service name but not from the host.
+
+11. You have a Kafka + Zookeeper compose stack used for local tests. Producers from your host cannot reach Kafka even though `9092` is published. Name the most likely configuration mistake (related to listeners) and explain how to fix it in compose.
+
+12. In `docker-compose`, what exactly does `depends_on` guarantee and what it does not? Give a robust pattern (with healthchecks or other techniques) to ensure service B only starts after service A is actually ready to accept connections.
+
+13. Explain multi-stage builds. For a data-engineer building a Spark job image that needs compiled Java jars and Python dependencies, outline a multi-stage Dockerfile plan and justify which artifacts belong in which stage.
+
+14. You need to run integration tests in CI that spin up MinIO, Kafka, and Postgres via compose, run tests, then tear down and collect logs/coverage. Sketch the CI workflow steps (no marketplace action copy-paste), including how you ensure tests fail the job when a service exits with error and how to capture logs/artifacts.
+
+15. Describe how cgroups enforce memory limits for a container. What happens when a Java Spark worker in a container exceeds its `--memory` limit, and how would you design jobs and retry logic to survive OOMs gracefully?
+
+16. Explain how Docker image caching works across CI runners (e.g., GitHub Actions). How would you configure remote cache usage to make builds faster and still secure (briefly mention `buildx`, `--cache-from`, and registry auth concerns)?
+
+17. Security: discuss three common ways secrets inadvertently end up in Docker images or registries, and for each one describe a mitigation strategy suitable for a data-engineering team deploying ETL jobs.
+
+18. Compose file layering: you have `docker-compose.yml` and `docker-compose.override.yml`. Explain how Compose merges them, and give an example where using an override file is the correct approach for local development but must not be used in production.
+
+19. Observability: list how you would instrument a containerized ETL worker so that (a) logs are centralized and searchable, (b) key job metrics are exported to Prometheus, and (c) health is available to orchestrators. Mention specific runtime behaviors and Docker flags you’d use.
+
+20. Debugging challenge (practical mental exercise): A container starts and immediately exits with no logs. Walk through — in the order you would run commands and checks — the exact commands and inspections you would perform to (a) find the root cause, (b) reproduce it locally with an interactive shell, and (c) produce a fix that avoids the problem on future builds.
+
+
+========================
+
+    MY ANSWER 
+
+========================
+
+1. it is most likely build caches leading to cntainer size getting bigger or that we copied the entire folder at once leading to rebuild and installation of packages, it can be voided by using the no-cache flag while building the image, ensureing we always copy, build and install packages first before copying our code working directory
+
+2. it happened mostly likely because we are copying data files or using very large base image more than what we need i would use dockerignore file and ensure i am not copying data or big files in my working directory
+
+3. entry point is mostly used in cases where we want very consistent outcome and don't want it to ve overwritten, so it forces the container to start from the entrypoint. a good example is when i want a file, maybe db connection file to always run first whenever the container is started 
+
+4. from the moment the docker run command is issued, the docker cli sends the command to the docker daemon, dockerd now reads the content of the docker file and now tells containerd to prepare a container for this image, then runc now sets namespaces, unified file system and resources for the container based on the config, then containerd now creates the container with this configuration after docker daemon have executed the instructions in the docker file
+
+5. 
+
+6. bind mounts are used for bnding a real location in our hard disk to a location in our container so we can easily access all files there. because it is just mounting a linking a folder on your computer it is faster, but has low secirty checks and an attacker can take advantage of it. you can mostly use it in development for easy access of files in your container. 
+
+named volumes on the other end, docker creates a random folder in your harddrive (docker) where it manages the storage and ensures data there eprsists even after the container is shut down. because it is mangaed by docker, there is a sort of latency compared to biind mount, but it is more secured as docker only gives it requred permissions and namespaces to operate, adn it is easy to drop into aother computer and it starts working, it does not need to have a fixed folder position as in bind mounts. the use case is for storing our db 
+tmpfs on the other end are temporary files, data is cleared immedately the container shuts down.it is mostly used for storing things that are only required in run time 
+
+7. it is isually stored in docker/var/lib. to produce a consistent backup you would need to copy the named volume alongside the compose file while moving, or have a script that bundles everything togehter to a folder. to restore it to a new volume you just delete the volume. i don;t understand what you mean by restore it to a new vlume 
+
+8. i would make sure to delete the compilation files after compiling - this reduces the image size 
+  - i would use double build stage - this helps remove things that are only needed for building and not the actual image 
+  - i would ensure all my lines are properly layered, to avoid large rebuild consequently 
+  - i would use no-cache flag - to ensure it is not caching verbose layers 
+  - i would use small base models like pristine - this reduces the image size by a lot 
+  - i would make sure not to bake data sets/folders into my image - this reduces image size 
+
+9. first of, docker's overly file system merges files to a union, the container firles which are read only go under, the writable files that are appended during build are on top, and then the merged (both of them). file writes go up, i don't know what copy up means, when you delete a file inside the container, docker drops the file in the final container layer and it might end up as an orphaned file in the system 
+
+10. docker netowking for the default bridge, docker ceated an ipnat table, mapping ip inside the container to an ip in the computer outside the container so that it can from there send and receive information within itself and with the outside world. port mapping works by taking a port on the host machine (the one on the left) and mapping it to a port in the container (right side), so any connection made to the left post host computer is then redirectd to the container right port. internally docker has a netowkring mapping which it uses in ensuring that services grouped togethr can talk with each other, when we put the service name, it checks the table and maps it to the actual address in the container, and it can not be accessed from the host cos of namespaces, which creates virtual fences and restrictions between the host and the container 
+
+11. I don't know this one, but i am thinking something aroudn the ip mapping, and probably security settings of the network 
+
+12. depends_on guarantees that the container does not run until the other container starts running. it does not gurantee that the processes like db connection in the container has been made, it just checks if the container has started for the robust way of ensuring that service b starts only after when service a is ready is we can pass a helath bash health check script to the platform we are running the container on, that calls and checks if the db is ready to accept connection, so only when it returns true shoudl the platform build the container 
+
+13. multi stage builds, this is when we have different stages to the build like when we have things we want to prepare or setup before the actual build, this is usually done to reduce build size and remove things that are not needed in the final build. for a de buidling somehting that needs java and python compilation they can use a 2 step multi stage build, where in the first stage they first download the base image, apt get update, install tools required for the compilation process, copile and save to a folder, then pass that base image layer with the folder to the next stage, that starts from a fresh base image, then copies the compiled packages to this fresh build 
+
+14. i don't know how to spin up all those platforms, i have not learnt up to there yet, just learning docker and some other stuffs, then gradually increasing the complexity. but we use fail=fast: true to ensure the job fails when a test fails. we can output the logs to a file and store it as artifacts which we can later download or send to an api via bash shell custom actions 
+
+15. memory limits usually have a soft and hard limit. for the soft limit, we set a maximun memory the container can take, but if the cpu has more memory it can scale and take up more. hard limit, hwere we set a fixed memory size, and the container would never cross it even if the cpu has more memory, when it tries to cross the limit, a kill signal is immediately sent to kill the container's process. we can write a code to listen to when the container is going off as a result of this exit code then handle it gracefully like checking states, apis etc 
+
+16. docker image caching works by layers, reusing all layers not changed prior to the first layer that was changed. but across ci runners, every build is a fresh build, as it is started on a fresh blank linux kernel system. 
+
+17. the first ones ia by passing it directly in the commands, it can be mitigated by using github secrets
+  - second one is by passing it in env value paris in the bash command, it can be mitigated by using env files instead
+  - third one is by passing it to commands that reuire user input directly, where it now ends up in history. it can be mitigated by using echo and pipe into the command 
+
+18. i have not learnt docker compose override, but i guess it smartly checks for conflicts in the images, and where present picks the one in the compose override file.
+
+19. we can put the logs in a named volume or api. we can use health checks in the platform we deploy to 
+
+20. to find the root cause, i can try running the docker command with exec and -it to see the logs, i can also change the command/entrypoint to something simpler that i can gurantee would work so i know if it is from the container itself, or from the main app code, with these two commands i wouuld get some leads to whewre the error is coming from. 
+
+  - to reproduce it locally with an interactive shell, i can use docker use context for that, to check it directly from my terminal 
+
+  - i will update the image and push the fix for future builds 
+
+
+========================================================
+
+    Critical Corrections & Deep Explanations
+
+========================================================
+
+
+
+1️⃣ Question 1 — Layer Caching (Refinement)
+
+Your mistake:
+
+"use no-cache flag"
+
+That actually makes builds slower.
+
+What really happens:
+
+Docker caches layers based on instruction + context checksum.
+
+If you:
+
+COPY . .
+RUN npm install
+
+When you change any file, the COPY . . checksum changes →
+That invalidates that layer →
+RUN npm install runs again.
+
+Correct pattern:
+COPY package.json package-lock.json ./
+RUN npm install
+
+COPY . .
+
+This isolates dependency layer.
+
+3️⃣ ENTRYPOINT vs CMD (Correction)
+
+Your example about DB connection file is incorrect.
+
+Truth:
+
+ENTRYPOINT defines the main executable
+
+CMD defines default arguments
+
+Example:
+
+ENTRYPOINT ["python"]
+CMD ["app.py"]
+
+Runtime:
+
+docker run image script.py
+
+Becomes:
+
+python script.py
+Real data engineering example:
+
+ETL container:
+
+ENTRYPOINT ["python", "etl.py"]
+
+Now nobody can accidentally override and run something else.
+
+4️⃣ Container Runtime Flow (Correction)
+
+Correct flow:
+
+docker run
+
+Docker CLI → Docker daemon (dockerd)
+
+dockerd checks image
+
+dockerd talks to containerd
+
+containerd prepares container metadata
+
+containerd calls runc
+
+runc:
+
+sets namespaces
+
+sets cgroups
+
+mounts overlay filesystem
+
+execs process as PID 1
+
+Process starts
+
+Important correction:
+Dockerfile is NOT read at runtime.
+It was executed at build time.
+
+5️⃣ Zombie Processes (You skipped this — important)
+
+Why it happens:
+
+Inside containers, your app often becomes PID 1.
+
+PID 1 in Linux:
+
+Does NOT automatically reap zombie processes
+
+Needs signal handling
+
+Fix:
+
+Use tini
+
+Or:
+
+ENTRYPOINT ["tini", "--"]
+
+Or use:
+
+docker run --init
+
+Very important for ETL workers.
+
+7️⃣ Named Volume Backup (Correction)
+
+Correct production-safe way:
+
+docker run --rm \
+  -v myvolume:/volume \
+  -v $(pwd):/backup \
+  alpine \
+  tar czf /backup/backup.tar.gz -C /volume .
+
+To restore:
+
+docker run --rm \
+  -v newvolume:/volume \
+  -v $(pwd):/backup \
+  alpine \
+  tar xzf /backup/backup.tar.gz -C /volume
+
+You don’t "delete volume to restore".
+You extract into a fresh volume.
+
+9️⃣ OverlayFS — Important Concept
+
+Docker image layers:
+
+Layer 1 (base)
+Layer 2
+Layer 3
+Container writable layer
+
+OverlayFS merges them.
+
+Copy-up:
+
+If a file exists in lower read-only layer and you modify it:
+→ It gets copied into writable layer.
+→ Lower layer remains unchanged.
+
+When deleting file:
+
+Docker creates a whiteout file in writable layer.
+It hides lower-layer file.
+The original file still exists in image layer.
+
+11️⃣ Kafka Listener Problem (Critical Real-World Issue)
+
+The issue is:
+
+Kafka advertises internal container hostname.
+
+Example bad config:
+
+KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+
+Your host connects to localhost:9092
+Kafka responds: connect to kafka:9092
+Your host doesn't know what "kafka" is.
+
+Correct config:
+
+KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+
+Or dual listener setup.
+
+This is one of the most common Docker-Kafka issues.
+
+16️⃣ CI Caching Across Runners (Important)
+
+You said:
+
+every build is fresh
+
+Correct — unless you use remote cache.
+
+Solution:
+
+docker buildx build \
+  --cache-to=type=registry,ref=myimage:cache \
+  --cache-from=type=registry,ref=myimage:cache
+
+Now layers are stored in registry and reused across runners.
+
+18️⃣ Compose Override (Clarification)
+
+Compose merges files like this:
+
+Base:
+
+services:
+  app:
+    image: prod-image
+
+Override:
+
+services:
+  app:
+    build: .
+
+Result:
+Override replaces matching fields.
+
+Use case:
+
+Production: use prebuilt image
+
+Local dev: build locally with mounted code
+
+20️⃣ Proper Debug Flow (Senior-Level Answer)
+
+Correct structured debugging:
+
+docker ps -a
+
+docker logs container
+
+docker inspect container
+
+Check exit code
+
+Run interactive:
+
+docker run -it --entrypoint sh image
+
+Manually run main command
+
+Fix root cause
+
+Add healthcheck / fail-fast logic
+
+This is professional debugging order.

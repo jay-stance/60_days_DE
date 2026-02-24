@@ -60,3 +60,9 @@ agility, scalability, simplicity, reuse, and interoperability
   - Create a community and environment where people can collaborate and speak openly, no matter their role or position
 
 Data engineering is a holistic practice; the best data engineers view their responsibilities through business and technical lenses.
+
+Know how to communicate with nontechnical and technical people.
+Understand how to scope and gather business and product requirements.
+Understand the cultural foundations of Agile, DevOps, and DataOps.
+Control costs.
+Learn continuously.
