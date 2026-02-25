@@ -1,0 +1,60 @@
+The Pydantic Gauntlet
+Task 1: The Standard Ingestion
+Create a Customer model that accepts an id (integer), email (string), and is_active (boolean, defaults to True).
+
+Task 2: The Constrained Payload
+Create a Transaction model. The amount must be a float strictly greater than 0.0. The currency must be a string of exactly 3 characters.
+
+Task 3: Nested Schemas
+Create an Order model that contains an order_id (string) and an items field. The items field must be a list of Product models (which contain a product_id and price).
+
+Task 4: The Legacy API (Aliases)
+You are consuming an old API that sends JSON with a key called first-name. Create a User model that parses this into a Python variable named first_name so you don't have hyphens in your Python code.
+
+Task 5: The Strict Type Enforcer
+By default, Pydantic will convert the string "123" into the integer 123. Create an InventoryCount model with an item_count integer field that strictly rejects strings and only accepts actual integers.
+
+Task 6: The Bouncer (Extra Fields)
+You are building a webhook receiver. Create a WebhookPayload model containing event_id and timestamp. Configure the model to actively crash (raise a ValidationError) if the sender includes any extra fields not defined in the model.
+
+Task 7: The Custom Field Validator
+Create a NetworkDevice model with an ip_address string field. Write a custom validator for this field that raises a ValueError if the string does not start with "192.168.".
+
+Task 8: The Root Validator (Multi-Field)
+Create a Subscription model with start_date (date) and end_date (date). Write a model-level validator that ensures end_date is strictly after start_date.
+
+Task 9: The Environment Loader
+Using pydantic-settings, create a DatabaseConfig model that automatically loads DB_HOST, DB_USER, and DB_PORT from your system's environment variables.
+
+Task 10: The Secret Protector
+Modify the DatabaseConfig from Task 9 to include a DB_PASSWORD. Ensure the password is typed in a way that prevents it from being accidentally printed to the terminal in plain text if someone prints the model.
+
+Task 11: Dynamic Defaults
+Create a LogEvent model with a message (string) and a created_at (datetime). Ensure created_at automatically generates the exact current UTC datetime whenever a new LogEvent is instantiated without passing a time.
+
+Task 12: The Computed Field
+Create an Employee model with first_name and last_name. Add a full_name property to the model that automatically concatenates them, ensuring that if you export the model to a dictionary (model_dump()), full_name is included in the output.
+
+Task 13: Stripping Whitespace
+You are ingesting messy CSV data. Create a RawDataRow model with a category string field. Configure the model so that if it receives "  electronics  ", it automatically trims it to "electronics".
+
+Task 14: The Immutable Record
+Create an AuditLog model. Configure it so that once an instance is created, another developer cannot accidentally change any of its values (make the model frozen/immutable).
+
+Task 15: UUID Enforcement
+Create a Session model. The session_id field must strictly be a valid UUID4. It should reject standard strings.
+
+Task 16: The Export Filter
+Create a PatientRecord model with patient_id, name, and social_security_number. Instantiate the model, and then export it to a dictionary, but ensure the social_security_number is excluded from the final dictionary.
+
+Task 17: Reusable Annotations
+Using typing.Annotated, create a custom type called HexColor that ensures a string always starts with # and is exactly 7 characters long. Apply this custom type to a color_code field inside a Theme model.
+
+Task 18: Model Mutations (Copy and Update)
+Create a ServerNode model with node_id and status (defaults to "offline"). Instantiate a node. Without altering the original instance, create a duplicate of it where the status is updated to "online".
+
+Task 19: Polymorphism (The Discriminator)
+You receive an event stream with two types of JSONs: PageVew and Click. Both have an event_type string ("view" or "click"). PageView has a url. Click has button_id. Create a StreamEvent model that uses a discriminated union to automatically parse the JSON into the correct sub-model based on the event_type.
+
+Task 20: The API Ingestion Boss Battle
+Create a model to parse this exact, messy JSON payload perfectly. It must handle the nested structure, enforce the specific constraints listed below, and rename the awkward fields.
