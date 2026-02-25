@@ -1,0 +1,34 @@
+Policies and permissions in AWS Identity and Access Management
+
+Manage access in AWS by creating policies and attaching them to IAM identities (users, groups of users, or roles) or AWS resources. A policy is an object in AWS that, when associated with an identity or resource, defines their permissions. 
+
+AWS supports seven types of policies: 
+  - identity-based policies, 
+  - resource-based policies, 
+  - permissions boundaries, 
+  - AWS Organizations service control policies (SCPs), 
+  - AWS Organizations resource control policies (RCPs), 
+  - access control lists (ACLs), 
+  - and session policies.
+
+  The AWS Hierarchy: The "Corporate Campus" Analogy
+1. The AWS Organization (The Corporate Campus)
+When a company signs up for AWS, they create an Organization. This is the top-level umbrella that holds the credit card used to pay the massive monthly cloud bill.
+
+2. The AWS Account (The Office Buildings)
+Instead of putting all their servers and data in one giant bucket, companies spin up multiple AWS Accounts. Think of an Account as a completely isolated office building with its own walls and locks.
+
+The standard DE setup: A company will have a "Development Account" (where you test code) and a completely separate "Production Account" (where the live customer data lives).
+
+Why? Because if a junior engineer accidentally writes a script that deletes everything in the "Development Account," the "Production Account" is physically separated. The blast radius is contained.
+
+3. The IAM User (The Employee)
+This is the person. An IAM User is Jay Stance logging in with a username and password. You, the human, are given an IAM User identity, and you are granted access to walk into specific AWS Accounts (office buildings).
+
+4. The IAM Role (The Hard Hat)
+This is the most important concept for a Data Engineer. A Role is an identity with permissions, but it does not have a password, and it does not belong to a specific person. It is a "hat" you can temporarily put on.
+
+How DEs use it: You don't give your Python script your personal username and password. Instead, you create a "DataPipelineRole" (a hard hat). You tell AWS, "When my Python script runs on the server, let it wear this hard hat." The script assumes the role, gets temporary permission to read the database, and takes the hat off when it finishes.
+
+5. The Resource (The Desks and Cabinets)
+This is the actual stuff inside the AWS Account (the office building). It is the S3 buckets (filing cabinets), the EC2 instances (computers), and the RDS databases (vaults).
