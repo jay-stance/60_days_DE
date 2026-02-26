@@ -154,3 +154,97 @@ The Summary for your Notes
   - The Limitation: It can only be used to grant access to external AWS accounts. It cannot grant access to users within the same account.
 
   - Modern Usage: Rarely used. Modern AWS architecture relies entirely on JSON Resource-based policies instead.
+
+Session Policies (The Temporary Filter)
+
+  What it is: A JSON policy passed dynamically inside your code when you request temporary AWS credentials (via AWS STS / AssumeRole).
+
+  The Function: It never grants access. It only filters or limits the permissions your Role normally has for the duration of that specific temporary session.
+
+  The Use Case: The Principle of Least Privilege. If a powerful Role is assumed for a minor task, you pass a Session Policy to handicap the Role temporarily, ensuring that if the script crashes or is compromised, the blast radius is tiny.
+
+  Federation: This is the exact mechanism used behind the scenes when you log into AWS using an external identity provider like Okta or Google.
+
+
+The AWS Root User (God-Mode)
+
+  What it is: The original email address used to create the AWS account. It inherently has full admin access to everything inside that account.
+
+  What DOES NOT affect it: You cannot attach Identity-based policies to it (it doesn't need them), and you cannot restrict it with Permissions Boundaries.
+
+  How it interacts with Resources: You can name a Root User as the Principal in a Resource-based policy (usually to grant cross-account access to an entire foreign account).
+
+  The Only Way to Restrict It: If the Account is part of a larger AWS Organization, the overarching SCPs and RCPs apply to the Account itself, meaning they will successfully block even the Root User.
+
+
+JSON Policies & Evaluation
+
+    The DE Standard: Always write your policies in JSON. Avoid relying on the AWS Visual Console, as console clicks cannot be automated in CI/CD pipelines.
+
+    Logical OR (Additive Stacking): If you have multiple Allow statements across different policies, AWS stacks them together. You get the combined total of all permissions.
+
+    Access Analyzer: Always use this to validate your JSON. It catches syntax errors and prevents catastrophic security misconfigurations before you save the file.
+
+
+The 6 Elements of a JSON IAM Policy
+
+    Version: Always "2012-10-17".
+
+    Statement: The container array holding your individual rules.
+
+    Sid: An optional, human-readable name for the rule.
+
+    Effect: "Allow" or "Deny".
+
+    Action: The API verb (e.g., "s3:GetObject").
+
+    Condition: Optional rules (e.g., IP address restrictions, MFA requirements).
+
+The Golden Rule of Who and Where
+
+    Identity Policies (ID Badges): Require a Resource (Where), but NEVER have a Principal (Who).
+
+    Resource Policies (Smart Locks): Require a Principal (Who), but the Resource (Where) is usually implied.
+
+
+Structuring IAM Policies (Best Practices)
+
+    Keep it Modular: Do not put unrelated permissions (like S3 access and IAM user management) into the same JSON statement or file. Break them into separate, functionally grouped policies.
+
+    Size Limits: AWS enforces strict character limits on JSON policies. Modular policies prevent you from hitting this ceiling.
+
+    The * Boundary: Using "Resource": "*" applies to all resources within your specific AWS account, not the entire AWS ecosystem.
+
+    The Power of Condition: A statement with a Condition (like enforcing MFA or IP address restrictions) only activates if the condition is 100% true. If false, the permission is entirely ignored.
+
+
+{
+  "Version":"2012-10-17",		 	 	 
+  "Statement": [
+    {
+      "Sid": "FirstStatement",
+      "Effect": "Allow",
+      "Action": ["iam:ChangePassword"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SecondStatement",
+      "Effect": "Allow",
+      "Action": "s3:ListAllMyBuckets",
+      "Resource": "*"
+    },
+    {
+      "Sid": "ThirdStatement",
+      "Effect": "Allow",
+      "Action": [
+        "s3:List*",
+        "s3:Get*"
+      ],
+      "Resource": [
+        "arn:aws:s3:::amzn-s3-demo-bucket-confidential-data",
+        "arn:aws:s3:::amzn-s3-demo-bucket-confidential-data/*"
+      ],
+      "Condition": {"Bool": {"aws:MultiFactorAuthPresent": "true"}}
+    }
+  ]
+}
