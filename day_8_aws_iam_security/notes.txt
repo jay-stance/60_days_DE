@@ -248,3 +248,46 @@ Structuring IAM Policies (Best Practices)
     }
   ]
 }
+
+
+{
+    "Version":"2012-10-17",		 	 	 
+    "Statement": [
+        {
+            "Sid": "1",
+            "Effect": "Allow",
+            "Principal": {
+                "AWS": [
+                    "arn:aws:iam::111122223333:root"
+                ]
+            },
+            "Action": "s3:*",
+            "Resource": [
+                "arn:aws:s3:::amzn-s3-demo-bucket",
+                "arn:aws:s3:::amzn-s3-demo-bucket/*"
+            ]
+        }
+    ]
+}
+
+
+The Principle of Least Privilege (PoLP)
+
+    The Golden Rule: Never use wildcards (*) just to make things work faster. Only grant the exact permissions required for the specific task. Start strict, add permissions only when proven necessary.
+
+    Access Advisor: The "Last Accessed" tool. Use it to audit your team. If a permission hasn't been used in 90 days, revoke it.
+
+    CloudTrail: The universal AWS logbook. It records every API call made in your account.
+
+    Access Analyzer Policy Generation: The automated JSON writer. It scans CloudTrail logs to see what your script actually did, and generates a perfectly scoped Least Privilege policy based on real activity.
+
+
+Roles: Temporary, assumable identities. The absolute standard for giving applications, scripts, and federated human users access to AWS.
+
+Service-Linked Roles: Auto-generated roles owned by AWS. Do not touch them.
+
+Role Chaining: Assuming a role while wearing a role. Hard-capped at a 1-hour session limit.
+
+Trust Policies: The specific JSON policy attached to a Role that dictates exactly who or what is allowed to assume it.
+
+Federation: Using SSO (like Google or Okta) to authenticate. AWS trusts the SSO and hands you a temporary Role instead of making you maintain an IAM User password.
