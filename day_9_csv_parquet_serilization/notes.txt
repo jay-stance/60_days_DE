@@ -45,3 +45,28 @@ Snapshots & Time Travel: Iceberg doesn't edit Parquet files (they are immutable)
 Schema Evolution: Iceberg assigns an immutable internal ID to every column. This means you can add, rename, or drop columns instantly without breaking or rewriting petabytes of historical files.
 
 
+Big Data Compression: Snappy vs. Gzip
+The Core Concept: In Data Engineering, we compress data to make pipelines run faster, not just to save hard drive space. Reading from a disk (I/O) is the slowest part of a computer. It is actually faster for the CPU to read a small compressed file and unzip it in RAM than it is to wait for the hard drive to read a massive uncompressed file.
+
+Compression is always a trade-off between Disk Space and CPU Speed.
+
+Gzip (The Deep Freezer)
+How it works: Uses complex math to find every repeating pattern. Squeezes data as tightly as physically possible.
+
+The Trade-off: High compression ratio (tiny files), but very High CPU usage (slow to compress/decompress).
+
+Real-World Use Case: Cold Storage. Archiving historical data to AWS S3 or Glacier that you need to keep for compliance but rarely query.
+
+Snappy (The Sprinter)
+How it works: Invented by Google specifically for Big Data processing. Prioritizes speed over file size.
+
+The Trade-off: Moderate compression ratio (larger files than Gzip), but extremely Low CPU usage (blazing fast to compress/decompress).
+
+Real-World Use Case: Active Processing. This is the default compression algorithm for Parquet files, Apache Kafka messages, and Apache Spark shuffling. Use this for data that is actively being queried or moving through your ETL pipeline.
+
+
+ Feature,Gzip,Snappy
+Primary Goal,Maximum space saving,Maximum speed
+CPU Usage,High (Slow),Very Low (Fast)
+Compression Ratio,Excellent (~80% reduction),Moderate (~40-60% reduction)
+Best Used For,Archiving / Long-term storage,Active ETL / Parquet / Spark
