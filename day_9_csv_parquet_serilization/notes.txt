@@ -1,0 +1,47 @@
+Data engineers should avoid using CSV files in pipelines because they are highly
+error-prone and deliver poor performance. Engineers are often required to use CSV
+format to exchange data with systems and business processes outside their control.
+
+1. The Basics: Moving & Storing Data
+Serialization: Packing "live" data from a program's memory into a saved file format (like Parquet, Avro, or CSV) so it can be stored on disk or sent over a network.
+
+Deserialization: Unpacking that saved file back into the computer's memory so a program can read and manipulate it.
+
+The Polyglot Data Lake: Storing data in an open format (like Parquet) in a Data Lake (like AWS S3) is cheaper and better than using a locked-in Cloud Data Warehouse. It allows you to use a "polyglot" (multiple languages/tools) environment—meaning Python, Spark, and SQL engines like Presto can all read the exact same files without paying expensive vendor fees.
+
+2. File Formats: Row vs. Columnar
+Row-Oriented (e.g., Avro, CSV): * Analogy: The "Notepad."
+
+Strength: Incredibly fast for writing new data one by one (like live user sign-ups or ticket purchases).
+
+Weakness: Slow for reading/analytics because the computer has to scan every single row to find specific information.
+
+Columnar (e.g., Parquet):
+
+Analogy: The "Perfectly Organized Filing Cabinet."
+
+Strength: Incredibly fast for reading and analytics (e.g., "Sum up all ticket sales for 2025") because it only scans the specific columns you ask for.
+
+Weakness: Slow and heavy to write to or update.
+
+3. Apache Hudi: The "Live Update" Master
+Raw Data Lakes do not handle live UPDATE or DELETE commands well. Hudi acts as a smart layer on top of your Data Lake to solve this.
+
+CDC (Change Data Capture): A live stream that captures every INSERT, UPDATE, and DELETE happening in your main database in real-time.
+
+The Hybrid Magic: Hudi takes those live CDC updates and scribbles them down quickly into Row-oriented files (the notepad). Your massive historical data stays in Columnar files (Parquet).
+
+Merge-On-Read (The "Smart Accountant"): When you run a query, Hudi instantly reads the historical Parquet files, overlays the recent Row file updates in memory, and gives you a perfectly accurate, up-to-the-second result without having to rewrite massive files.
+
+Compaction: Periodically, Hudi cleans up by permanently merging the temporary Row files into the main Parquet files.
+
+4. Apache Iceberg: The "Scale & Time Machine" Master
+Iceberg solves the problem of Data Lakes crashing when multiple people try to read and write massive amounts of data at the same time. It turns a "dumb" cloud storage folder into a smart database.
+
+The Metadata layer (The "Master Clipboard"): Iceberg separates the actual data from the map of the data. Queries must check Iceberg's "Manifest" (clipboard) to see exactly which files are officially part of the table. This means you can write new files safely in the background while people are querying the data.
+
+Snapshots & Time Travel: Iceberg doesn't edit Parquet files (they are immutable). Instead, it creates a new file with the updated data and generates a new "Snapshot" (a new map). The old files and old maps are kept. This acts like Git for Data, allowing you to run a query to see the data exactly as it looked last Tuesday.
+
+Schema Evolution: Iceberg assigns an immutable internal ID to every column. This means you can add, rename, or drop columns instantly without breaking or rewriting petabytes of historical files.
+
+
