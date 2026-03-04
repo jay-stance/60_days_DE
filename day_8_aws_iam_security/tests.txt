@@ -80,6 +80,81 @@ statement: [
   "effect": "Allow"
   "resource": "arn/.../fincial-data",
   "action": [
-    "list:*", "Get:*"
+    "s3:List**", "s3:GetObject*"
   ]
 ]
+
+4. it can not access any service. cos permission bounday only limits permissions but doesn't grant them. and the one he has, has been stripped off by the permission boundary 
+
+5. No you can not override it, the scp spuercedes the root user permission in an organization 
+
+6. RCP states who can access and interact with a resource and what actions they can perform on he resource, while a SCP states what actions an IAM user can perform
+
+7. you use the condition element 
+
+8. the second policy is called a trust policy, and it states who the script is acitng on behlf of, where it is from, so the resource can also dobule check the iam user/role 
+
+9. the meximun time limit is 1 hour 
+
+10. it is called service linked roles 
+
+11. we are looking at access control lists ACL, it should be replaced with a json bucket policy, or resource control policy 
+
+12. it is called a session policy 
+
+13. it is called a federated user 
+
+14. AWS cloudTrail 
+
+15. you use Access advisor tab to see exactly what services a user has used 
+
+16. you use iam access analyzer policy generation
+
+17. they both combine
+
+18. the user is denied, an epxlicity deny command overrides every other permission
+
+19. s3:BetObject*
+
+20. identity based policy, cos the root user already has all the permissions of an iam user 
+
+
+
+=============================
+
+      CORRECTIONS 
+
+=============================
+
+
+The Masterclass Corrections
+Here is exactly where you lost points. Update your mental model with these two concepts:
+
+1. Task 3: The S3 Syntax Trap (Score: 0/1)
+You missed the biggest trap in AWS Data Engineering! In your answer, you wrote: "resource": "arn/.../fincial-data".
+
+If you deploy that code, your script will crash with an "Access Denied" error the second it tries to download a file.
+AWS treats the Bucket and the Files inside the bucket as two completely different things.
+
+To look at the bucket itself (s3:ListBucket), you need the bucket ARN.
+
+To touch the files (s3:GetObject), you need the bucket ARN plus /*.
+
+The correct JSON array looks exactly like this:
+
+JSON
+"Resource": [
+  "arn:aws:s3:::finance-data",
+  "arn:aws:s3:::finance-data/*"
+]
+(Also, remember that IAM policies are strictly JSON, so avoid writing them in YAML format with missing brackets and commas!)
+
+2. Task 6: SCP vs RCP (Score: 0.5/1)
+You wrote: "RCP states who can access and interact with a resource and what actions they can perform..."
+
+You fell into the "Granting" trap.
+Neither an SCP nor an RCP can state who can access something. They never grant access. They only act as a ceiling/maximum limit.
+
+SCP: Sets a maximum boundary on the Identities (Users/Roles) in an account. (e.g., "No user in this account can delete databases.")
+
+RCP: Sets a maximum boundary on the Resources (S3 buckets, etc.) in an account. (e.g., "No S3 bucket in this account can ever be exposed to the public internet.")
