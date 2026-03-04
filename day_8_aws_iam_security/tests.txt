@@ -1,0 +1,85 @@
+The AWS IAM Gauntlet
+Task 1: The Cross-Account Handshake
+Company A wants to pull data from Company B's S3 bucket. Company B attaches a Resource-based policy to their bucket allowing Company A's account. What specific type of policy must Company A attach to their own extraction script to complete the connection?
+
+Task 2: The Missing Element
+You are reviewing an Identity-based policy (an ID badge) attached to a junior developer. You notice the JSON contains Effect, Action, and Resource, but it does not contain a Principal block. Will AWS reject this policy as invalid? (Explain why or why not).
+
+Task 3: The S3 Syntax Trap
+You are writing a Resource-based policy for a bucket named finance-data. You want the trusted user to be able to look at the bucket itself (List) AND download the files inside it (Get). How exactly do you format the Resource array in your JSON to make sure both work?
+
+Task 4: The Boundary Override
+An IAM Role has an Identity-based policy granting s3:* (Full S3 Access). A Permissions Boundary is attached to that exact same Role, but the boundary only allows ec2:* (Full EC2 Access). If a script assumes this role, what AWS services can it actually access?
+
+Task 5: The Master Switch
+You are the Root User of the "Data Engineering" AWS Account. Your company's overarching AWS Organization applies an SCP (Service Control Policy) that explicitly denies the deletion of RDS databases. As the Root User, can you override this and delete the database?
+
+Task 6: SCP vs. RCP
+In one sentence, what is the primary difference between what a Service Control Policy (SCP) protects versus what a Resource Control Policy (RCP) protects?
+
+Task 7: The Bouncer
+You want to grant a script access to write to a database, but you want to enforce a rule that the script can only do this if it is running from your company's internal IP address. Which of the main JSON policy elements do you use to enforce this?
+
+Task 8: The Dual-Nature of Roles
+When you create an IAM Role for a Python script, you must attach two JSON policies to it. One is the Permissions Policy (what the script can do). What is the specific name of the other policy, and what is its exact job?
+
+Task 9: The Matryoshka Doll
+Your pipeline script assumes Role_A. Halfway through the job, while still wearing Role_A, it uses it to assume Role_B. What is the strict, maximum time limit (in hours) AWS places on this session?
+
+Task 10: The Untouchable Role
+You notice a role in your AWS Account named AWSServiceRoleForAutoScaling. You try to edit its JSON permissions, but the AWS console blocks you and says it is managed by AWS. What specific type of role is this?
+
+Task 11: The Legacy Code
+You are migrating an old data pipeline. You find a security rule attached to an S3 bucket that grants cross-account access, but it is written in XML (not JSON) and uses an old checkbox system. What legacy feature are you looking at, and what should you replace it with?
+
+Task 12: The Temporary Filter
+A script assumes an IAM Role that has God-Mode Admin permissions. During the login API call, the script passes a custom JSON document that temporarily limits its own powers to just reading S3. What is this dynamically passed JSON policy called?
+
+Task 13: Federation
+Your data engineering team logs into AWS every morning by clicking a button inside Okta, meaning they do not have AWS passwords. What is the IAM term for an identity created this way?
+
+Task 14: The Security Camera
+You want to know exactly which IAM Role deleted a critical CSV file at 2:00 AM last night. Which AWS service do you check to view the logs of every API call made in your account?
+
+Task 15: The Clean-Up Crew
+A Data Scientist is moving to a different department. You want to see exactly which AWS services they have used in the last 90 days so you can safely revoke the ones they aren't using. Which IAM console feature do you use to see this?
+
+Task 16: The Auto-Writer
+You ran a script in the Dev account for a week. You want to generate a strict, perfect JSON policy based only on the exact API calls the script actually made during that week. Which specific AWS tool will write this JSON for you automatically?
+
+Task 17: The Logical OR
+A script has two Identity-based policies attached. Policy 1 allows reading S3. Policy 2 allows writing to S3. How does AWS evaluate these together? (Does one override the other, or do they combine?)
+
+Task 18: The Explicit Deny
+A user has three policies attached. Two policies grant full Allow access to S3. One policy has an Explicit Deny for S3. What is the final outcome if the user tries to read an S3 bucket?
+
+Task 19: The Action Wildcard
+You want to allow a script to use s3:GetObject, s3:GetObjectVersion, and s3:GetObjectAcl. How can you write this in the "Action" element using a wildcard so you don't have to type all three?
+
+Task 20: Root User Immunity
+Name one type of IAM policy (out of the 7 we discussed) that you physically cannot attach to the Account Root User because the Root User inherently has those powers already.
+
+
+
+=============================
+
+        ANSWERS
+
+=============================
+
+
+1. Company A must attach the trust/identity policy
+
+2. AWS will not reject it, this is because a principal is not compulsory in an identity based policy, since it already states that whoever wears me (automatically the principal). what is compulsory is a resource based policy 
+
+3. i would do something like this 
+
+version: "2012-10-17"
+"sid": "allow get list fincial data"
+statement: [
+  "effect": "Allow"
+  "resource": "arn/.../fincial-data",
+  "action": [
+    "list:*", "Get:*"
+  ]
+]
