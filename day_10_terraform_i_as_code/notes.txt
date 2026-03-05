@@ -1,0 +1,23 @@
+Erraform is an open source infastructure as code tool that allows you to define cloud infastructures like database, servers, networking using code, instead of clicking around
+
+there is a difference between how we write codde in terraform (declarative) and how we write in python and javascript (imperative)
+
+In python where if we say create a bucket X, and make it public. if we run this script twice, it would probably create the bucket twice, or override the first one.
+in terraform on the other end, you just declare the end state, "there should be a bucket X, and it should be public". it checks aws if the bucket exists, if not it creates it. and if it is, it doesn't create it as the end state has already been reached 
+
+TERRAFORM ARCHITECTURE
+
+2 main components:
+  - CORE: it uses 2 input sources to do its job. it takes terraform configuration file TF-Config (where the user define what is to be created/configured), secondly is terraform STATE: current and up-to-date state of setup.
+
+  the core now takes that input, and figures out (plan) what needs to be done (created/updated/destroyed)
+  
+  - PROVIDERS:AWS, AZURE,...other IAAS, kubernetes and other PAAS, fastify and other SAAS
+
+Terraform: An Infrastructure as Code (IaC) tool that lets you write readable code (HCL) to automatically deploy cloud resources instead of clicking through the AWS console.
+
+The Workflow: Write Code $\rightarrow$ terraform init $\rightarrow$ terraform plan $\rightarrow$ terraform apply.
+
+The State File (tfstate): A massive JSON file that acts as Terraform's memory. It maps the code you wrote to the actual physical resources living in AWS.
+
+Remote State: The enterprise best practice of storing the tfstate file in a central S3 bucket (instead of a local laptop) so an entire team of engineers can safely collaborate without their code colliding.
