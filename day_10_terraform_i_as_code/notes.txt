@@ -21,3 +21,13 @@ The Workflow: Write Code $\rightarrow$ terraform init $\rightarrow$ terraform pl
 The State File (tfstate): A massive JSON file that acts as Terraform's memory. It maps the code you wrote to the actual physical resources living in AWS.
 
 Remote State: The enterprise best practice of storing the tfstate file in a central S3 bucket (instead of a local laptop) so an entire team of engineers can safely collaborate without their code colliding.
+
+HCP Terraform (Terraform Cloud): A paid, managed service by HashiCorp that hosts your Terraform runs and securely stores your State Files for you, replacing the need to build your own S3/DynamoDB backends.
+
+Remote vs Local Execution: * Remote: HashiCorp's servers run your code and hold the state.
+
+Local: Your laptop runs the code, but reaches out to HashiCorp to read/write the shared state using an API Token.
+
+State Locking: Terraform locks the state file during an apply so two engineers can't mutate the infrastructure at the exact same millisecond.
+
+State Versions: HCP keeps a historical log of every state file change, allowing you to audit exactly when an AWS resource was created, modified, or destroyed.
