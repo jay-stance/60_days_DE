@@ -185,3 +185,40 @@ resource "aws_s3_bucket" "tachpae_logs" {
   }
 }
 Why this matters: If your company suddenly changes the project name, you change it in exactly one place (the locals block), and Terraform automatically updates the tags on all 50 of your AWS resources.
+
+
+. Data Sources (data)
+We touched on this when discussing the billing model, but this is how you actually write it. You use data blocks to query AWS for information about things that already exist so you don't have to guess ARNs or hardcode your AWS Account ID.
+
+For example, if you are writing an IAM Trust Policy and need to insert your AWS Account ID, you don't type 021835752057. You ask Terraform to fetch whoever is currently logged in:
+
+Terraform
+# 1. Fetch the current AWS account info
+data "aws_caller_identity" "current" {}
+
+# 2. Use it dynamically in your JSON
+resource "aws_iam_role" "data_extractor" {
+  name = "Tachpae-Extractor-Role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = "sts:AssumeRole"
+      Principal = {
+        # This dynamically injects your account ID!
+        AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+      }
+    }]
+  })
+}
+
+
+4. Outputs (output)
+When Terraform finishes building your database, how does the rest of your engineering team know the database URL? You don't make them log into the AWS console to find it. You use an output block to print it directly to the terminal screen at the very end of the terraform apply.
+
+Terraform
+output "s3_bucket_arn" {
+  description = "The ARN of the newly created logs bucket"
+  value       = aws_s3_bucket.tachpae_logs.arn
+}
+When the apply finishes, the terminal spits out: Outputs: s3_bucket_arn = "arn:aws:s3:::tachpae-dev-logs"
