@@ -128,3 +128,60 @@ resource "aws_s3_bucket" "backup_bucket" {
   provider = aws.west_coast
   bucket   = "tachpae-backup-logs"
 }
+
+
+make sure you always add tis to your gitignore file, as sometimes sensitive information like db passwords might be in the state or any of the files 
+
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Ignore any secret variable files
+*.tfvars
+*.tfvars.json
+
+
+1. Variables (variable)
+Seniors never hardcode names, environments, or region settings. We extract them into variables so the exact same Terraform code can be injected with different values depending on the environment.
+
+Instead of hardcoding the environment name, you declare a variable block:
+
+Terraform
+variable "environment" {
+  description = "The deployment environment (dev, staging, prod)"
+  type        = string
+  default     = "dev"
+}
+
+# Now you use it in your resource!
+resource "aws_s3_bucket" "tachpae_logs" {
+  bucket = "tachpae-${var.environment}-logs" 
+}
+
+2. Local Values (locals)
+Variables are for things you pass into Terraform from the outside. locals are for internal logic, calculations, and standardized tags that you want to use repeatedly inside your file without typing them over and over.
+
+Terraform
+locals {
+  team_name   = "data-engineering"
+  project     = "tachpae-core"
+  # You can combine strings dynamically here
+  bucket_name = "${local.project}-${var.environment}-logs"
+}
+
+resource "aws_s3_bucket" "tachpae_logs" {
+  bucket = local.bucket_name
+  
+  tags = {
+    Team        = local.team_name
+    Environment = var.environment
+  }
+}
+Why this matters: If your company suddenly changes the project name, you change it in exactly one place (the locals block), and Terraform automatically updates the tags on all 50 of your AWS resources.

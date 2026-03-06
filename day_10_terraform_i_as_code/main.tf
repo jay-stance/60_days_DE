@@ -2,8 +2,14 @@ provider "aws" {
   region = "us-east-1"
 }
 
+variable "enviroment" {
+  description = "enviroment (dev, staging, prod etc)"
+  type = string
+  default = "dev"
+}
+
 resource "aws_s3_bucket" "tachpe_logs_bucket" {
-  bucket = "tachpae-de-logs-bucket"
+  bucket = "tachpae-${var.enviroment}-logs-bucket"
 }
 
 resource "aws_iam_policy" "iam_policy" {
