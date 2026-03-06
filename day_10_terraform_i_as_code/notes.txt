@@ -31,3 +31,12 @@ Local: Your laptop runs the code, but reaches out to HashiCorp to read/write the
 State Locking: Terraform locks the state file during an apply so two engineers can't mutate the infrastructure at the exact same millisecond.
 
 State Versions: HCP keeps a historical log of every state file change, allowing you to audit exactly when an AWS resource was created, modified, or destroyed.
+
+
+HCP Terraform Billing & Resource Types
+
+Managed Resources: The core metric HashiCorp uses to bill you. It is the total number of physical infrastructure items tracked inside your State File.
+
+resource blocks: Code used to create, update, or destroy infrastructure. These do count toward your managed resource bill. (Note: using loops like count or for_each multiplies the number tracked in the state).
+
+data blocks: Code used purely to read or look up existing infrastructure. These do not count toward your bill.
