@@ -40,3 +40,91 @@ Managed Resources: The core metric HashiCorp uses to bill you. It is the total n
 resource blocks: Code used to create, update, or destroy infrastructure. These do count toward your managed resource bill. (Note: using loops like count or for_each multiplies the number tracked in the state).
 
 data blocks: Code used purely to read or look up existing infrastructure. These do not count toward your bill.
+
+
+-----------------------
+
+1. The Anatomy of HCL
+Every block of Terraform code follows the exact same visual structure:
+
+Terraform
+block_type "cloud_provider_thing" "your_custom_local_name" {
+  key = "value"
+}
+block_type: Is this a resource (build something), a data (read something), or a provider (login to AWS)?
+
+cloud_provider_thing: The official HashiCorp dictionary word for the AWS service (e.g., aws_s3_bucket or aws_iam_policy).
+
+your_custom_local_name: A nickname you give it so you can reference it elsewhere in your code. AWS never sees this name.
+
+2. The Setup: The Provider Block
+Before Terraform can build anything, it needs to know where to build it. You always start your main.tf file by defining the Provider.
+
+Terraform
+provider "aws" {
+  region = "us-east-2"
+}
+Translation: "Hey Terraform, load the AWS API dictionary and aim all my commands at the Ohio region."
+
+3. Building the S3 Bucket
+Now, let's write the code to create the Tachpae event logs bucket.
+
+Terraform
+resource "aws_s3_bucket" "tachpae_logs" {
+  bucket = "tachpae-event-logs-de"
+}
+Translation: "Build me an S3 bucket in AWS. The actual global URL name of the bucket will be tachpae-event-logs-de. Inside this code file, I am going to nickname it tachpae_logs."
+
+4. The Superpower: Referencing Attributes
+Here is where Infrastructure as Code destroys ClickOps.
+
+In the AWS Console, if you want to write an IAM policy for a bucket, you have to create the bucket, copy its ARN to your clipboard, open a new tab, and paste the ARN into your JSON.
+
+In Terraform, you don't need to know the ARN. You just reference the nickname you created in step 3! Terraform will figure out the exact ARN for you while it runs.
+
+Let's write your Tachpae-S3-ReadOnly policy using HCL's jsonencode function (which safely converts Terraform code into the JSON that AWS expects):
+
+Terraform
+resource "aws_iam_policy" "s3_read_policy" {
+  name        = "Tachpae-S3-ReadOnly"
+  description = "Allows reading event logs for Tachpae"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "Statement1"
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket",
+          "s3:GetObject"
+        ]
+        Resource = [
+          aws_s3_bucket.tachpae_logs.arn,
+          "${aws_s3_bucket.tachpae_logs.arn}/*"
+        ]
+      }
+    ]
+  })
+}
+Look closely at the Resource array above. Instead of hardcoding "arn:aws:s3:::test-event-logs-de", I wrote aws_s3_bucket.tachpae_logs.arn.
+
+Terraform reads that and says: "Ah, Jay wants me to go look at the resource named aws_s3_bucket.tachpae_logs, grab its arn, and inject it right here." The ${...}/* syntax is just Terraform's way of adding the /* to the end of the ARN so you can access the files inside!
+
+to use two providers in a file, the secondary provider should have an alias
+
+provider "aws" {
+  region = "us-east-1"
+}
+
+# The secondary provider gets an alias
+provider "aws" {
+  alias  = "west_coast"
+  region = "us-west-2"
+}
+
+# When building the resource, you tell it which provider to use
+resource "aws_s3_bucket" "backup_bucket" {
+  provider = aws.west_coast
+  bucket   = "tachpae-backup-logs"
+}
