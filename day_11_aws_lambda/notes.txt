@@ -1,0 +1,109 @@
+Serverless (Lambda) 
+There are still servers, but AWS manages them. When an event happens (like a file dropping into S3), AWS instantly finds an empty server, copies your Python code onto it, runs your function, and then instantly destroys the environment.
+
+The 5 Core Concepts You Must Master
+To pass a senior technical interview and build production pipelines (like processing ticket sales for Tachpae), you must understand these five pillars:
+
+1. The Execution Model (The Constraints)
+Lambda is "Serverless," meaning AWS spins up a tiny server, runs your code, and destroys it. You need to know the hard limits:
+
+The 15-Minute Rule: A Lambda function cannot run longer than 15 minutes. If your data pipeline takes 16 minutes, Lambda will kill it mid-sentence.
+
+Memory & CPU: You allocate memory (from 128MB to 10GB). The more memory you give it, the more CPU power AWS assigns it.
+
+Cold Starts: When a Lambda hasn't been used in a while, it takes an extra second or two to spin up. You need to know why this happens and how it impacts real-time APIs.
+
+2. Triggers & Event-Driven Architecture
+Lambda rarely runs on its own. It waits for an "Event." You need to know how to connect it to:
+
+Amazon S3: Triggering a script the exact millisecond a new CSV file is uploaded.
+
+Amazon EventBridge (CloudWatch Events): Running a script on a Cron schedule (e.g., "Run this data extraction every day at midnight").
+
+Amazon API Gateway: Triggering a script when a user hits a web endpoint (vital for backend APIs).
+
+3. Permissions (The IAM Glue)
+Remember the Hard Hat from Day 10? Lambda relies entirely on IAM Roles.
+
+Execution Role: The identity-based policy the Lambda function wears to interact with other AWS services (e.g., permission to read the S3 bucket and write to a database).
+
+Resource-Based Policy: The smart lock on the Lambda function itself that gives services like S3 the permission to "invoke" (trigger) the function.
+
+4. Packaging and Layers (The Data Engineer's Hurdle)
+This is the #1 thing that trips up Data Engineers.
+If your Python script uses pandas, numpy, or requests, you cannot just paste your code into AWS. AWS doesn't have those libraries installed by default.
+
+Deployment Packages: You have to zip up your code and all its dependencies into a single file.
+
+Lambda Layers: A way to upload your Python libraries separately so you can share them across multiple functions.
+
+Container Images (Docker): Lambda has a strict 250MB size limit for zip files. If your data processing libraries are larger than that, you must package your Lambda as a Docker image.
+
+5. Infrastructure as Code (Terraform)
+Seniors do not click around the AWS console to build Lambdas. You will need to learn how to write the aws_lambda_function block in HCL to deploy your code automatically.
+
+
+THREE WAYS OF DOING LAMBDA FUNCTIONS 
+
+1. Standard Lambda (The Default Workhorse)
+
+Time Limit: 15 minutes max.
+
+Billing: Pay strictly per millisecond of execution.
+
+Behavior: Spins up a "ghost server" when triggered, freezes it after use, deletes it if idle. Subject to "Cold Starts" (1-3 second delays when booting fresh).
+
+Use Case: 90% of DE tasks. Triggering a quick Python script when a CSV lands in S3 or hitting an API endpoint.
+
+2. Durable Functions (The Marathon Runner)
+
+Time Limit: Up to 1 year.
+
+Behavior: Can "pause" its execution to wait for an external event (like a database finishing a load, or a human manager clicking "Approve").
+
+Billing: You pay zero dollars while it is paused. It saves its state (checkpoints) and wakes up exactly where it left off.
+
+Use Case: Massive, multi-step ETL pipelines or long-running workflows.
+
+3. Managed Instances (The Serverless/Server Hybrid)
+
+Behavior: Runs your Lambda code continuously on physical EC2 servers that your company rents.
+
+Billing: You pay a flat hourly rate for the server, completely eliminating the "per-millisecond" Lambda execution fees.
+
+Performance: Zero Cold Starts. Processes thousands of requests in parallel on the same machine.
+
+Use Case: Unpredictable, non-stop, massive data firehoses where standard Lambda per-request billing would bankrupt the company.
+
+
+1. The Standard Lifecycle (The Ghost Server Timeline)
+
+Init Phase: AWS provisions the server, starts extensions, boots the Python runtime, and runs global code (like database connections).
+
+Invoke Phase: Runs your actual lambda_handler function. This is the only part you are billed for.
+
+Warm Starts: If a new event arrives quickly, Lambda skips the Init phase and goes straight to a new Invoke phase, saving massive amounts of time.
+
+Shutdown Phase: If the environment sits idle for too long, AWS cleans up the state and kills the server.
+
+2. The Durable Lifecycle (For Long-Running Workflows)
+
+Adds two extra phases to the Standard Lifecycle:
+
+Wait: The function completely pauses execution to wait for something (like an external API), consuming zero resources (and costing zero dollars).
+
+Resume: The function restarts exactly from its last saved checkpoint.
+
+3. The 3 Internal APIs (How the server communicates)
+
+Runtime API: The bridge your Python code uses to talk to the Lambda service.
+
+Extensions API: Allows background processes (like Datadog or security scanners) to run alongside your code in the same environment.
+
+Telemetry API: Automatically streams logs and metrics directly to your extensions.
+
+4. The Memory Configuration Rule
+
+You only configure the Memory (RAM) and the Timeout.
+
+Senior Hack: You cannot explicitly choose your CPU power. AWS automatically allocates CPU proportionally to the memory you configure. If your code is slow, doubling the memory doubles the CPU power.
