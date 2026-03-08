@@ -107,3 +107,75 @@ Telemetry API: Automatically streams logs and metrics directly to your extension
 You only configure the Memory (RAM) and the Timeout.
 
 Senior Hack: You cannot explicitly choose your CPU power. AWS automatically allocates CPU proportionally to the memory you configure. If your code is slow, doubling the memory doubles the CPU power.
+
+
+3. The Enterprise Exceptions (Bypassing the 10-second rule)
+If your setup code takes longer than 10 seconds, Senior DEs use these advanced features (which get up to a 15-minute Init limit):
+
+Provisioned Concurrency: You pay AWS to initialize the environments before any traffic arrives. The servers sit pre-warmed and ready to go.
+
+Lambda SnapStart: The Init phase runs the moment you click "Publish". AWS takes a literal snapshot of the server's memory and disk, encrypts it, and caches it. When a ticket arrives, it just unpauses the snapshot for lightning-fast speeds.
+
+Managed Instances: Also exempt from the 10-second limit.
+
+4. Debugging Init Failures
+
+If your global code crashes or times out, AWS prints an INIT_REPORT to your CloudWatch logs (e.g., showing Status: timeout or Error Type: Extension.Crash).
+
+The Gotcha: If your Standard Lambda boots up successfully, AWS hides the INIT_REPORT completely to save log space. You will only see successful INIT_REPORT logs if you are paying for SnapStart or Provisioned Concurrency.
+
+
+1. The Restore Phase (SnapStart Only)
+
+Purpose: Unpauses a cached snapshot of an initialized execution environment instead of booting from scratch.
+
+Hooks: You can run "after-restore runtime hooks" to refresh things like database tokens immediately upon waking up.
+
+Limits: Hooks are billed and must complete within 10 seconds to avoid a timeout exception. Failures emit a RESTORE_REPORT.
+
+2. The Invoke Phase (Execution)
+
+Trigger & End: Starts when Lambda sends an event, and ends when the runtime and extensions send a Next API request signaling they are done.
+
+Shared Timeout Rule: The function timeout limit applies to the sum of the runtime execution plus the extension execution. If a background extension hangs, it will crash your main function.
+
+3. Invoke Failures & The Reset Penalty
+
+If a function crashes or times out during the INVOKE phase, AWS immediately resets the runtime and shuts down the extensions.
+
+The Penalty: This destroys the "Warm" environment. The very next invocation will be forced to undergo a full INIT cold start again.
+
+Invoke Failures: Common causes for an invoke failure include function timeouts, runtime errors, memory exhaustion, VPC connectivity issues, permission errors, and configuration problems.
+
+The Reset Behavior: When an invoke error happens, the Lambda service performs a reset that behaves like a Shutdown event. Lambda shuts down the runtime and sends a Shutdown event (with the failure reason) to each extension.
+
+The /tmp Directory Warning: The Lambda reset does not clear the /tmp directory content prior to the next init phase. This behavior is consistent with the regular shutdown phase.
+
+CloudWatch Log Format Changes: AWS is rolling out new-format log messages and trace segments (except in China and GovCloud regions).
+
+New Log Fields: The new format includes an additional Status field (e.g., error or timeout) in the REPORT line. For crashes, it also includes an Error Type field.
+
+Suppressed Inits: If a function re-initializes immediately after an invoke failure, this is called a suppressed init. Lambda doesn't explicitly report an additional INIT phase in CloudWatch Logs for this.
+
+Identifying Suppressed Inits: You can spot them if the difference between the REPORT and START timestamps doesn't match the reported duration. The reported duration includes an additional INIT duration + the INVOKE duration.
+
+Telemetry API: You can use the Telemetry API to see INIT_START, INIT_RUNTIME_DONE, and INIT_REPORT events with phase=invoke when suppressed inits occur.
+
+
+To safely use the /tmp folder without causing a data breach during a Warm Start, Senior Data Engineers do two things:
+
+Never use static file names: Don't save a file as data.csv. Generate a random UUID for every single run and save it as /tmp/ab48-9f82-data.csv.
+
+Aggressive Cleanup: The very last line of your lambda_handler function should be a command that forcibly deletes everything inside the /tmp directory before the function returns the "Success" message to AWS.
+
+Shutdown Phase: Extensions are granted a brief window (up to 2,000 ms for external) to execute final cleanup tasks. If they timeout, Lambda ends the process with a SIGKILL.
+
+Environment Lifespan: AWS forcefully terminates execution environments every few hours for maintenance, even if they are continuously invoked.
+
+Warm Start Dangers: Unfinished background processes freeze and will resume on the next invocation. Global variables persist across warm starts and can leak data between executions if used for context-specific information.
+
+Cold Starts: Consist of the time taken to download the code and start the execution environment. You are charged for this time, which adds latency.
+
+Provisioned Concurrency: Pre-initializes a set number of execution environments to eliminate cold start latency for predictable workloads.
+
+Code Optimization: The largest contributor to latency is static initialization. Optimize this by using specific micro-imports instead of full SDKs, and lazily loading heavy objects only when required.
