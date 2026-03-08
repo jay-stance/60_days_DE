@@ -222,3 +222,17 @@ output "s3_bucket_arn" {
   value       = aws_s3_bucket.tachpae_logs.arn
 }
 When the apply finishes, the terminal spits out: Outputs: s3_bucket_arn = "arn:aws:s3:::tachpae-dev-logs"
+
+
+The Folder Structure
+If you opened VS Code, your file tree would look exactly like this:
+
+Plaintext
+tachpae-infra/                 <-- Your main folder
+│
+├── main.tf                    <-- The Caller (Where you USE the module)
+│
+└── modules/                   <-- The Blueprint folder
+    └── secure-s3-blueprint/
+        ├── main.tf            <-- The Blueprint logic
+        └── variables.tf       <-- The Blueprint inputs

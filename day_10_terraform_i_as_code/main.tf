@@ -44,6 +44,15 @@ resource "aws_iam_policy" "iam_policy" {
   })
 }
 
+# You call the blueprint here!
+module "secure_tachpae_bucket" {
+  source      = "./modules/secure-s3-blueprint"
+  
+  # You pass in the values for the variables it asked for
+  environment = "prod"
+  bucket_name = "event-ticket-data"
+}
+
 output "s3_bucket_arn" {
   description = "The ARN of the newly created logs bucket"
   value = aws_s3_bucket.tachpe_logs_bucket.arn
