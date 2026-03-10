@@ -13,7 +13,8 @@ s3_client = boto3.client('s3')
 dynamodb = boto3.resource('dynamodb')
 
 # Connect to the exact table we built in Terraform
-table = dynamodb.Table('tachpae-ticket-counts')
+table_name = os.environ['DYNAMODB_TABLE']
+table = dynamodb.Table(table_name)
 
 def lambda_handler(event, context):
     bucket_name = event['Records'][0]['s3']['bucket']['name']

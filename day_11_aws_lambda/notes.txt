@@ -242,3 +242,28 @@ The Trigger Event: Later that day, a file named ticket_sales.csv is uploaded to 
 The bucket hits the tripwire (s3:ObjectCreated:*), formats the file details into a massive JSON dictionary, and fires it at your Lambda function.
 
 Your Lambda wakes up (Init phase), and passes that exact JSON dictionary into the event argument of your def lambda_handler(event, context): Python function (Invoke phase).
+
+
+AWS Lambda Best Practices
+
+Execution Environment Reuse: Initialize clients (like boto3) outside the handler. Cache files locally in /tmp, but aggressively clean them to prevent cross-invocation data leaks.
+
+Environment Variables: Never hardcode infrastructure names (like S3 buckets or DynamoDB tables) inside your Python code. Pass them dynamically from Terraform using environment variables.
+
+Avoid Recursion: Never design a pipeline where a Lambda function writes data to the exact same source that triggers it, causing an infinite billing loop.
+
+Idempotency: Write code that gracefully handles duplicate events. If AWS accidentally triggers the function twice for the same file, the database should not contain duplicate entries. (Use tools like AWS Lambda Powertools for Python to handle this automatically).
+
+Keep-Alive Directives: Used for persistent connections (like keeping an external SQL database connection open) so Lambda doesn't sever the connection when idle.
+
+
+Lambda Configuration & Tuning
+Memory Configuration: Memory allocation dictates CPU power. Always check the Max Memory Used in the CloudWatch REPORT logs. Use the AWS Lambda Power Tuning open-source tool to find the perfect balance between execution speed and cost.
+
+Heavy Workloads (AVX2): For demanding machine learning, financial modeling, or heavy data engineering tasks, deploy libraries that leverage AVX2 to utilize advanced hardware-level parallel processing.
+
+IAM Policies: Always enforce the principle of least privilege. Only grant the exact actions required (e.g., dynamodb:PutItem instead of dynamodb:*).
+
+The SQS Rule: If using SQS as a trigger, the Lambda's function timeout must absolutely not exceed the queue's Visibility Timeout. Failing to respect this causes SQS to assume the function failed, resulting in duplicate processing.
+
+Housekeeping: Delete old, unused Lambda functions. Your AWS account has a hard quota limit on total deployment package storage size (usually 75GB). Dead code eats up this quota.

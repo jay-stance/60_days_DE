@@ -67,6 +67,14 @@ resource "aws_lambda_function" "ticket_processor" {
   
   memory_size      = 512 
   timeout          = 30 
+
+  # The Environment Variable "Sticky Note"
+  environment {
+    variables = {
+      # We tell Terraform to grab the actual name of the table it just built
+      DYNAMODB_TABLE = aws_dynamodb_table.ticket_counts.name
+    }
+  }
 }
 
 # ==========================================
