@@ -1,0 +1,2 @@
+Amazon ECS (Elastic Container Service) is a highly scalable service for running and managing Docker containers on AWS, while ECR (Elastic Container Registry) is a secure, private repository for storing and managing those container images. ECS orchestrates the applications, and ECR provides the images they need to run. 
+
