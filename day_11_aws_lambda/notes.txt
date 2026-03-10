@@ -267,3 +267,183 @@ IAM Policies: Always enforce the principle of least privilege. Only grant the ex
 The SQS Rule: If using SQS as a trigger, the Lambda's function timeout must absolutely not exceed the queue's Visibility Timeout. Failing to respect this causes SQS to assume the function failed, resulting in duplicate processing.
 
 Housekeeping: Delete old, unused Lambda functions. Your AWS account has a hard quota limit on total deployment package storage size (usually 75GB). Dead code eats up this quota.
+
+
+AWS Lambda Production Scaling & Monitoring Playbook
+When launching a major event like the NYSC SAED cohort showcase, sudden traffic spikes can destroy a poorly configured data pipeline. These four configurations protect the platform, ensure high availability, and keep cloud costs down.
+
+1. Protecting the Database (Reserved Concurrency)
+The Concept: AWS Lambda scales instantly, but downstream databases (like PostgreSQL or RDS) have strict connection limits. If 5,000 users hit Tachpae simultaneously, Lambda will instantly spawn 5,000 connections and crash the database.
+The Fix: Apply a hard cap in Terraform. AWS will queue the excess traffic and process it safely in batches.
+
+Terraform Code (main.tf):
+
+Terraform
+resource "aws_lambda_function" "ticket_processor" {
+  function_name = "tachpae-ticket-processor"
+  role          = aws_iam_role.lambda_exec_role.arn
+  filename      = "lambda_payload.zip"
+  handler       = "processor.lambda_handler"
+  runtime       = "python3.12"
+  
+  # THE SHIELD: Caps the maximum number of simultaneous ghost servers
+  reserved_concurrent_executions = 100 
+}
+2. Throttle Tolerance (Exponential Backoff & Jitter)
+The Concept: If a third-party payment API experiences a 2-second outage, all active Lambda functions will fail. If they all retry at the exact same millisecond, it creates a self-inflicted DDoS attack that will get your IP banned.
+The Fix: Introduce "Jitter" (randomized wait times) combined with exponential backoff to smooth out the retry traffic.
+
+Python Code (processor.py):
+
+Python
+import time
+import random
+import requests 
+
+def verify_payment_with_jitter(transaction_id):
+    max_retries = 3
+    base_delay = 1 
+    
+    for attempt in range(max_retries):
+        # Example API call
+        response = requests.get(f"https://api.paymentgateway.com/verify/{transaction_id}")
+        if response.status_code == 200:
+            return True
+            
+        # 1. Exponential Backoff (1s, 2s, 4s...)
+        sleep_time = base_delay * (2 ** attempt)
+        
+        # 2. Add Jitter (Randomize the exact fraction of a second)
+        jitter = random.uniform(0, sleep_time)
+        
+        print(f"API throttled. Retrying in {jitter:.2f} seconds...")
+        time.sleep(jitter)
+        
+    raise Exception("Payment Gateway unreachable. Aborting.")
+3. Zero-Latency Dashboards (Embedded Metric Format - EMF)
+The Concept: To track live metrics (e.g., "VIP Tickets Sold"), do not use boto3 to make a synchronous API call to CloudWatch. Network calls add latency and you are billed for the waiting time.
+The Fix: Print a specially structured JSON string to the standard logs. AWS secretly parses this log in the background and builds your live dashboards for free, with zero latency added to your function.
+
+Python Code (processor.py):
+
+Python
+import json
+import time
+
+def log_custom_metric_emf(ticket_type, quantity):
+    """Prints a strict EMF JSON payload. AWS converts this to a graph automatically."""
+    emf_payload = {
+        "_aws": {
+            "Timestamp": int(time.time() * 1000),
+            "CloudWatchMetrics": [{
+                "Namespace": "Tachpae/Ticketing",
+                "Dimensions": [["TicketType"]],
+                "Metrics": [{"Name": "TicketsSold", "Unit": "Count"}]
+            }]
+        },
+        # The actual data variables
+        "TicketType": ticket_type,
+        "TicketsSold": quantity
+    }
+    
+    # 0 ms latency. 
+    print(json.dumps(emf_payload))
+4. The Infrastructure Bridge (Environment Variables)
+The Concept: Never hardcode infrastructure names (like a DynamoDB table or S3 bucket name) directly inside your Python file. This breaks deployments if you try to spin up a separate "dev" or "staging" environment.
+The Fix: Terraform passes the dynamically generated name to the ghost server as an environment variable (a "sticky note"). Python reads it during the Global Scope Init phase.
+
+Terraform Code (main.tf):
+
+Terraform
+  # Inside your aws_lambda_function block...
+  environment {
+    variables = {
+      # Terraform dynamically injects the live table name
+      DYNAMODB_TABLE = aws_dynamodb_table.ticket_counts.name
+    }
+  }
+Python Code (processor.py):
+
+Python
+import os
+import boto3
+
+# Read the variable passed by Terraform ONCE during the Warm Start phase
+TABLE_NAME = os.environ['DYNAMODB_TABLE']
+
+dynamodb = boto3.resource('dynamodb')
+table = dynamodb.Table(TABLE_NAME)
+
+def lambda_handler(event, context):
+    # Core logic runs here...
+    pass
+
+
+REAL TIME STREAMING OPTIMIZATION TECHNIQUES
+
+1. The Batching Window (Tuning the Firehose)
+The Scenario: People are scanning QR code tickets at the gate. By default, the second one person scans a ticket, AWS boots up a Lambda function to process that single scan. If 1,000 people scan in 10 seconds, AWS boots 1,000 servers. This is incredibly inefficient and will cost you a fortune.
+
+The Fix: You configure a "Batching Window." You tell AWS: "Wait up to 5 seconds to collect a 'batch' of ticket scans. Once you have 100 scans, or 5 seconds have passed, send them all to ONE ghost server."
+
+The Terraform Configuration (main.tf):
+Instead of the S3 trigger we wrote earlier, you use an aws_lambda_event_source_mapping to connect a live stream to your Lambda.
+
+Terraform
+resource "aws_lambda_event_source_mapping" "live_ticket_stream" {
+  event_source_arn  = aws_kinesis_stream.ticket_scans.arn
+  function_name     = aws_lambda_function.ticket_processor.arn
+  
+  # THE TUNING: Wait for 100 records OR 5 seconds, whichever comes first
+  batch_size                         = 100
+  maximum_batching_window_in_seconds = 5 
+  
+  # Start reading from the newest scans
+  starting_position = "LATEST" 
+}
+2. Partial Batch Response (The Lifesaver)
+The Scenario: Your Lambda function receives a batch of 100 live ticket scans. It successfully processes scans 1 through 99. However, scan #100 has a corrupted JSON payload, and your Python code throws an error.
+
+The Junior Trap: By default, if one item in the batch fails, AWS assumes the entire batch failed. It will take all 100 scans and send them back to the queue to be processed again. Your database will now have duplicate entries for the first 99 people.
+
+The Senior Fix: You enable Partial Batch Response. You write your Python code to tell AWS exactly which specific scan failed, so AWS only retries that single bad record.
+
+The Python Code (processor.py):
+
+Python
+def lambda_handler(event, context):
+    failed_records = []
+
+    # AWS hands you a list of live stream records
+    for record in event['Records']:
+        try:
+            # Extract the unique ID of the stream record
+            record_id = record['messageId'] 
+            
+            # CORE LOGIC: Process the ticket scan...
+            payload = record['body']
+            print(f"Successfully processed scan {record_id}")
+            
+        except Exception as e:
+            print(f"Record {record_id} failed: {str(e)}")
+            # Add ONLY the failed ID to the list
+            failed_records.append({"itemIdentifier": record_id})
+
+    # Return the specific failures to AWS so it only retries those!
+    return {
+        "batchItemFailures": failed_records
+    }
+3. The "IteratorAge" Metric (The Backlog Alarm)
+The Scenario: Your Kinesis stream is receiving 500 ticket scans per second, but your Python script is a bit slow and can only process 100 per second.
+
+You are falling behind. A backlog is forming. If this happens, your database won't reflect real-time attendance; it will be delayed by minutes or even hours.
+
+The Fix: You don't look at "Invocation Errors" to catch this; you look at IteratorAge in CloudWatch. IteratorAge measures exactly how old the oldest unprocessed record in the stream is.
+
+If your IteratorAge spikes from 100 milliseconds to 30,000 milliseconds (30 seconds), your system is officially choking. You set a CloudWatch Alarm to text your phone immediately if IteratorAge crosses 30 seconds. To fix it, you either optimize your Python code or add more "Shards" (physical processing pipes) to your Kinesis stream.
+
+4. GuardDuty Lambda Protection (The Hacker Trap)
+The Scenario: Remember earlier when I mentioned that if a hacker stole your AWS keys from GitHub, they would spin up Bitcoin mining servers?
+
+The Fix: The documentation explicitly calls out Amazon GuardDuty. This is AWS's internal security AI. If you turn it on, GuardDuty silently watches the outbound internet traffic of your Lambda ghost servers.
+If your processor.py script normally just talks to DynamoDB, but suddenly starts pinging a known Russian cryptocurrency mining IP address, GuardDuty will flag it as a critical security breach immediately. It is a one-click toggle in the AWS console that protects you from massive compromised-credential bills.

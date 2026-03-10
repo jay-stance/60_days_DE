@@ -75,6 +75,10 @@ resource "aws_lambda_function" "ticket_processor" {
       DYNAMODB_TABLE = aws_dynamodb_table.ticket_counts.name
     }
   }
+
+  # THE SHIELD: AWS will NEVER spin up more than 50 of these at the same time.
+  # If 5,000 requests hit, AWS queues the rest up and processes them safely in batches of 50.
+  reserved_concurrent_executions = 50
 }
 
 # ==========================================
