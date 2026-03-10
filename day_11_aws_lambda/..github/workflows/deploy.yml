@@ -1,0 +1,45 @@
+name: Tachpae Production Deployment
+
+# 1. THE TRIGGER
+# This tells GitHub: "Only run this script when Jay pushes code to the 'main' branch."
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-infrastructure:
+    # 2. THE ENVIRONMENT
+    # GitHub spins up a blank, temporary Ubuntu Linux server for you
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Download your repository files onto the temporary GitHub server
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Step 2: Log into your AWS Account securely (NEVER hardcode keys here!)
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # Step 3: Run the exact Zip command we just learned!
+      # Because this runs on GitHub's server, it creates the zip right next to main.tf
+      - name: Package Lambda Code
+        run: |
+          zip lambda_payload.zip processor.py
+
+      # Step 4: Install Terraform on the GitHub server
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # Step 5: Initialize Terraform (Downloads the AWS providers)
+      - name: Terraform Init
+        run: terraform init
+
+      # Step 6: Deploy to AWS! (-auto-approve skips the "yes" prompt)
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
