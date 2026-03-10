@@ -15,3 +15,7 @@ crash.*.log
 # Ignore any secret variable files
 *.tfvars
 *.tfvars.json
+
+# ignore zip file and packes folder in terraform
+packages/
+*.zip
