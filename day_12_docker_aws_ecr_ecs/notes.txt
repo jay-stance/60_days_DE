@@ -1,2 +1,12 @@
 Amazon ECS (Elastic Container Service) is a highly scalable service for running and managing Docker containers on AWS, while ECR (Elastic Container Registry) is a secure, private repository for storing and managing those container images. ECS orchestrates the applications, and ECR provides the images they need to run. 
 
+COMPONENTS OF AMAZON ECR 
+
+The Registry: This is the master vault for your entire AWS account. You only get one private registry per region.
+
+The Repository: This is a specific shelf inside the vault. If you have a container that cleans CSVs, it goes in the tachpae-etl-repo. If you have a container that runs a Machine Learning model, it goes in the tachpae-ml-repo.
+
+The Authorization Token: Docker on your Mac doesn't natively know who AWS is. You have to generate a temporary, highly secure password in your terminal so your Mac is allowed to push 500MB files into the cloud.
+
+The Repository Policy: Just like the IAM "Hard Hats" for Lambda, this dictates who can download your Docker image.
+
