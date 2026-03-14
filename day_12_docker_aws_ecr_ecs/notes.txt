@@ -46,3 +46,24 @@ The Task Definition: The strict JSON blueprint that tells ECS which Docker image
 The Task: The actual, live, running instance of your Docker container executing your code.
 
 AWS Fargate: The serverless compute engine for ECS. It completely eliminates the need to manage or provision underlying EC2 servers, charging you only for the exact compute time your Task consumes.
+
+ECS Task (Data Engineering): A finite, standalone execution of a Docker container. It runs a specific job (like an ETL script or machine learning model) to completion. Once the code finishes executing, the underlying Fargate server is automatically destroyed to save costs.
+
+ECS Service (Web Development): An infinite, long-running execution of Docker containers used for web servers, APIs, or background daemon processes. It ensures a specified number of containers are running 24/7.
+
+Auto-Recovery: The core feature of an ECS Service. If a container crashes or becomes unhealthy, the Service automatically terminates it and spins up a replacement to maintain the desired count.
+
+Load Balancing: ECS Services integrate directly with Application Load Balancers (ALBs) to distribute incoming internet traffic across multiple running containers for high availability.
+
+
+VPC (Virtual Private Cloud): The foundational, logically isolated network boundary for your entire AWS architecture. All ECS Tasks must be launched inside a VPC.
+
+Subnets: Sub-sections of your VPC.
+
+Public Subnets route directly to the internet via an Internet Gateway (used for Load Balancers).
+
+Private Subnets have no direct internet ingress (used for secure Data Engineering workloads and databases).
+
+NAT Gateway: A managed service placed in a Public Subnet that allows resources in a Private Subnet to reach the internet (e.g., to pull Docker images or API data) while preventing the internet from initiating a connection back.
+
+Security Groups: The stateful, instance-level firewalls attached to your Fargate Tasks. They control exact inbound and outbound port traffic (e.g., allowing outbound database connections on port 5432, while denying all inbound access).
