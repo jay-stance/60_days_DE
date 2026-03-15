@@ -22,3 +22,88 @@
 |        | |   Data   | |       | |    Data    | |             | |   Software    |
 |Security| |management| |DataOps| |architecture| |Orchestration| |  engineering  |
 +--------+ +----------+ +-------+ +------------+ +-------------+ +---------------+
+
+
+
+Raw ingredients, storage systems, and storage abstractions
+
+
++---------------------------------------------------------+
+|                  Storage abstractions                   |
+|                                                         |
+|      +---------------+       +----------------------+   |
+|      |   Data lake   |       |    Data lakehouse    |   |
+|      +---------------+       +----------------------+   |
+|                                                         |
+|      +---------------+       +----------------------+   |
+|      | Data platform |       | Cloud data warehouse |   |
+|      +---------------+       +----------------------+   |
++---------------------------------------------------------+
++---------------------------------------------------------+
+|                     Storage systems                     |
+|                                                         |
+|   +-------------+                       +-------------+ |
+|   |    HDFS     |                       |   Object    | |
+|   +-------------+     +-----------+     |   storage   | |
+|                       |   RDBMS   |     +-------------+ |
+|   +-------------+     +-----------+     +-------------+ |
+|   |Cache/memory-|                       |  Streaming  | |
+|   |based storage|                       |   storage   | |
+|   +-------------+                       +-------------+ |
++---------------------------------------------------------+
++---------------------------------------------------------+
+|                     Raw ingredients                     |
+|                                                         |
+|    +----------+    +-------------+    +-----------+     |
+|    |   HDD    |    |     SSD     |    |    RAM    |     |
+|    +----------+    +-------------+    +-----------+     |
+|                                                         |
+|    +----------+    +-------------+    +-----------+     |
+|    |Networking|    |Serialization|    |Compression|     |
+|    +----------+    +-------------+    +-----------+     |
+|                                                         |
+|                    +-------------+                      |
+|                    |     CPU     |                      |
+|                    +-------------+                      |
++---------------------------------------------------------+
+
+
+
+Data engineers need to understand how networking will affect the systems they
+build and use. Engineers constantly balance the durability and availability achieved
+by spreading out data geographically versus the performance and cost benefits of
+keeping storage in a small geographic area and close to data consumers or writers.
+Appendix B covers cloud networking and major relevant ideas.
+
+
+What is serialization, exactly? Data stored in system memory by software is generally
+not in a format suitable for storage on disk or transmission over a network. Serializa‐
+tion is the process of flattening and packing data into a standard format that a reader
+will be able to decode.
+
+
+Beating the Network Bottleneck
+Serialization: Swap row-based formats (CSV/JSON) for columnar formats (Parquet/ORC) so the network only transfers the specific columns requested.
+
+Compression: Apply big-data algorithms (Snappy/Zstd) to shrink data size with minimal CPU decompression penalty.
+
+Partitioning: Organize storage into hierarchical, query-optimized folders (like year=YYYY/month=MM/) to prevent full-table network scans.
+
+Proximity: Deploy compute and storage resources in the identical geographic AWS Region to minimize physical fiber-optic travel distance.
+
+
+
+Table 6-1. A heuristic cache hierarchy displaying storage types with approximate pricing and performance characteristics
+
++------------------+--------------------+-----------------------------------------------+---------------------+
+| Storage type     | Data fetch latencya| Bandwidth                                     | Price               |
++------------------+--------------------+-----------------------------------------------+---------------------+
+| CPU cache        | 1 nanosecond       | 1 TB/s                                        | N/A                 |
+| RAM              | 0.1 microseconds   | 100 GB/s                                      | $10/GB              |
+| SSD              | 0.1 milliseconds   | 4 GB/s                                        | $0.20/GB            |
+| HDD              | 4 milliseconds     | 300 MB/s                                      | $0.03/GB            |
+| Object storage   | 100 milliseconds   | 10 GB/s                                       | $0.02/GB per month  |
+| Archival storage | 12 hours           | Same as object storage once data is available | $0.004/GB per month |
++------------------+--------------------+-----------------------------------------------+---------------------+
+
+a A microsecond is 1,000 nanoseconds, and a millisecond is 1,000 microseconds.
