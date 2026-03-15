@@ -169,6 +169,11 @@ aws ecr get-login-password --region us-east-1 | docker login --username AWS --pa
 # 2. Build the image on your machine
 docker build -t fintech-exchange-etl .
 
+Rebuild the image for AWS Intel servers (Notice the new --platform flag):
+
+Bash
+docker build --platform linux/amd64 -t fintech-exchange-etl .
+
 # 3. Slap the AWS shipping label on it
 docker tag fintech-exchange-etl:latest <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com/fintech-exchange-etl:latest
 
@@ -252,3 +257,32 @@ aws ecs run-task \
 The moment you hit enter, AWS boots up a serverless Fargate node, locks it in the Private Subnet, pulls the Docker image from ECR, runs your Python script, routes the traffic through the NAT Gateway, prints the exchange rate to CloudWatch, and destroys the server.
 
 You have just mastered the heaviest lifting in Data Engineering.
+
+Remember the logConfiguration block we wrote in the Task Definition? It is secretly catching every print() statement your Python script makes and streaming them directly to Amazon CloudWatch.
+
+You can read those logs right now from your terminal using the AWS CLI "tail" command. Run this:
+
+Bash
+aws logs tail /ecs/fintech-exchange-etl
+
+
+in case of when you get a login error in your terminal and want to reauthenticate
+
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.us-east-1.amazonaws.com
+
+
+====================
+
+  EVENT BRIDGE
+
+====================
+
+
+EventBridge Automation
+Amazon EventBridge: The central event router and scheduling service in AWS. It replaces traditional cron servers (like EC2 instances running Linux crontabs).
+
+The Rule: The condition that kicks off the automation. For daily ETL pipelines, this is defined using a standard Cron expression (e.g., cron(0 12 * * ? *) for noon daily).
+
+The Target: The destination service that EventBridge triggers when the Rule matches. For Data Engineering, this Target is configured with the specific ECS Cluster, Task Definition, and VPC Subnet/Security Group details.
+
+The IAM Permission: EventBridge requires a dedicated IAM Service Role with the ecs:RunTask policy attached, granting it the cryptographic authority to command the ECS engine to launch your Fargate containers.
