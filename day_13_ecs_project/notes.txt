@@ -286,3 +286,10 @@ The Rule: The condition that kicks off the automation. For daily ETL pipelines, 
 The Target: The destination service that EventBridge triggers when the Rule matches. For Data Engineering, this Target is configured with the specific ECS Cluster, Task Definition, and VPC Subnet/Security Group details.
 
 The IAM Permission: EventBridge requires a dedicated IAM Service Role with the ecs:RunTask policy attached, granting it the cryptographic authority to command the ECS engine to launch your Fargate containers.
+
+
+aws_cloudwatch_event_rule: Defines the schedule_expression (e.g., cron) that acts as the trigger mechanism.
+
+aws_cloudwatch_event_target: Connects the Rule to the ECS Cluster. It acts exactly like the manual AWS CLI command, defining the task_definition, launch_type (Fargate), and the exact network_configuration (Private Subnets and Security Group).
+
+The IAM Requirement: EventBridge needs an IAM role granting ecs:RunTask (to start the compute) AND iam:PassRole (to securely hand the execution role to the Fargate container so it can pull from ECR).

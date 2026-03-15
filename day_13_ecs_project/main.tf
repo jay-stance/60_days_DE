@@ -40,6 +40,7 @@ module "vpc" {
 resource "aws_ecr_repository" "financial_etl_repo" {
   name                 = "fintech-exchange-etl"
   image_tag_mutability = "MUTABLE"
+  force_delete = true
 
   # Force AWS to scan our Python environment for hacker vulnerabilities
   image_scanning_configuration {
@@ -135,4 +136,72 @@ output "fargate_private_subnet_id" {
   # Because the VPC module creates multiple subnets, it returns a list. 
   # We use [0] to grab the very first one in the list.
   value       = module.vpc.private_subnets[0]
+}
+
+
+
+# ==========================================
+# PHASE 7: EVENTBRIDGE AUTOMATION (The Alarm Clock)
+# ==========================================
+
+# 1. The Messenger's Hard Hat (IAM Role)
+resource "aws_iam_role" "eventbridge_ecs_role" {
+  name = "fintech_eventbridge_trigger_role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = { Service = "events.amazonaws.com" } # Only EventBridge can wear this
+    }]
+  })
+}
+
+# Give EventBridge permission to pull the trigger AND hand off the Execution Hat
+resource "aws_iam_role_policy" "eventbridge_ecs_policy" {
+  name = "fintech_eventbridge_ecs_policy"
+  role = aws_iam_role.eventbridge_ecs_role.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "ecs:RunTask"
+        Resource = "*" # Allows it to run the Task Definition
+      },
+      {
+        Effect   = "Allow"
+        Action   = "iam:PassRole" # The critical Senior DE permission!
+        Resource = aws_iam_role.ecs_task_execution_role.arn
+      }
+    ]
+  })
+}
+
+# 2. The Rule (The Schedule)
+resource "aws_cloudwatch_event_rule" "daily_etl_schedule" {
+  name                = "fintech-daily-etl-trigger"
+  description         = "Fires every night at midnight UTC"
+  schedule_expression = "cron(0 0 * * ? *)" 
+}
+
+# 3. The Target (Wiring the Clock to the Engine)
+resource "aws_cloudwatch_event_target" "ecs_fargate_target" {
+  rule      = aws_cloudwatch_event_rule.daily_etl_schedule.name
+  target_id = "RunFinancialETL"
+  arn       = aws_ecs_cluster.financial_cluster.arn
+  role_arn  = aws_iam_role.eventbridge_ecs_role.arn
+
+  ecs_target {
+    task_count              = 1
+    task_definition_arn   = aws_ecs_task_definition.financial_etl_task.arn
+    launch_type             = "FARGATE"
+    
+    # Notice how EventBridge dynamically injects the network rules we used in the CLI!
+    network_configuration {
+      subnets          = module.vpc.private_subnets
+      security_groups  = [aws_security_group.fargate_sg.id]
+      assign_public_ip = false
+    }
+  }
 }
