@@ -107,3 +107,47 @@ Table 6-1. A heuristic cache hierarchy displaying storage types with approximate
 +------------------+--------------------+-----------------------------------------------+---------------------+
 
 a A microsecond is 1,000 nanoseconds, and a millisecond is 1,000 microseconds.
+
+
+
+1. The Storage Hierarchy
+Raw Ingredients: The physical hardware (e.g., HDDs, SSDs, RAM).
+
+Storage Systems: The software layer that organizes and manages the raw hardware (e.g., AWS S3, HDFS, Relational Databases).
+
+Storage Abstractions: The high-level, business-facing architectures built on top of storage systems (e.g., Data Lakes, Cloud Data Warehouses).
+
+2. Single Machine vs. Distributed Storage
+When a dataset becomes too massive for one server to hold or process efficiently, you must split it across a cluster of multiple servers.
+
+The Benefit: Distributed storage provides massive scalability, faster processing (through parallelism), and built-in redundancy (if one server crashes, the system survives because other nodes have copies of the data).
+
+The Catch: Storing data across multiple separate computers introduces a major networking challenge: The Consistency Dilemma.
+
+3. The Consistency Dilemma: ACID vs. BASE
+When you update a piece of data that is replicated across five different servers, it takes time for that update to travel over the network to all five nodes. As a Data Engineer, you have to choose between two data paradigms:
+
+ACID (Strong Consistency)
+
+The Rule: The database guarantees that the moment a write is successful, every subsequent read will return the exact, updated data.
+
+The Trade-off: It is slower (higher query latency). The system must pause and wait for all nodes to reach a consensus before it allows you to read the data.
+
+Enterprise Use Case: Financial transactions (like your Fintech ETL pipeline). You cannot afford to read a "sorta current" bank account balance.
+
+BASE (Eventual Consistency)
+
+The Rule: Basically Available, Soft-state, Eventually consistent. The database prioritizes blinding speed and uptime over immediate accuracy.
+
+The Trade-off: If you update a record and read it one millisecond later, you might receive the old data because the update hasn't reached that specific server yet. However, the system guarantees that eventually, all nodes will sync up.
+
+Enterprise Use Case: Social media feeds or IoT sensor logs. If a user's "like" count is off by one for a few seconds, the business doesn't break, but the system must be able to ingest millions of likes instantly without locking up.
+
+4. The Data Engineer's Responsibility
+Consistency is not just an IT problem; it is a business decision balancing speed, cost, and accuracy. You control this "consistency dial" in three places:
+
+Database Selection: Choosing a database fundamentally designed for strong consistency (like PostgreSQL) versus one built for eventual consistency (like Apache Cassandra).
+
+Cluster Configuration: Setting rules on how many nodes in a cluster must acknowledge a write before the system reports it as "successful."
+
+Query-Level Overrides: In modern NoSQL databases like AWS DynamoDB, you can write a specific query to demand a Strongly Consistent Read (which consumes more compute resources and costs more money) or accept an Eventually Consistent Read (which is cheaper and faster).
