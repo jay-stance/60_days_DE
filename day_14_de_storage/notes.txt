@@ -151,3 +151,25 @@ Database Selection: Choosing a database fundamentally designed for strong consis
 Cluster Configuration: Setting rules on how many nodes in a cluster must acknowledge a write before the system reports it as "successful."
 
 Query-Level Overrides: In modern NoSQL databases like AWS DynamoDB, you can write a specific query to demand a Strongly Consistent Read (which consumes more compute resources and costs more money) or accept an Eventually Consistent Read (which is cheaper and faster).
+
+
+
+Network-Attached Storage (NAS): * Definition: A centralized file storage system accessed by multiple client servers over a network connection, rather than directly attached to a single motherboard.
+
+Pros: Enables file sharing across multiple machines, storage pooling, and built-in redundancy.
+
+Cons: Introduces a slight network latency penalty compared to direct-attached local disks.
+
+Cloud Filesystems (Amazon EFS):
+
+Definition: A fully managed, auto-scaling NAS solution provided by cloud vendors (like AWS EFS). It handles all the underlying hardware, networking, and disk clustering automatically.
+
+Protocol: Uses standard network protocols like NFSv4 (Network File System).
+
+Pricing: Pay-per-use scaling (you do not need to pre-allocate an exact hard drive size like 100GB; it grows and shrinks automatically as you add or delete files).
+
+The EFS Consistency Model:
+
+Local Read-After-Write: The specific server that writes the data can instantly read those changes.
+
+Open-After-Close: Other servers sharing the network drive will only see the updated data after the writing server completely closes the file.
