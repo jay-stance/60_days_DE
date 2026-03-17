@@ -172,4 +172,45 @@ The EFS Consistency Model:
 
 Local Read-After-Write: The specific server that writes the data can instantly read those changes.
 
-Open-After-Close: Other servers sharing the network drive will only see the updated data after the writing server completely closes the file.
+Open-After-Close: Other servers sharing the network drive will only see the updated data after the writing server completely closes the file
+
+lock Storage (AWS EBS)
+Block Storage: * Definition: The lowest-level, rawest form of storage. The disk is divided into fixed-size chunks called "blocks" (typically 4KB), each with a unique physical address.
+
+Structure: It has no file hierarchy (no folders) and no metadata. The operating system formats it to create a usable file system.
+
+The Performance Advantage (Random I/O):
+
+Because data is broken into tiny, addressable blocks, the system can instantly overwrite a single 4KB block without rewriting the entire surrounding file. This is called "random access" or "random I/O."
+
+Primary Enterprise Use Cases:
+
+Operating System Boot Disks: The root volume (the "C: Drive") required to install Linux or Windows on cloud virtual machines (like AWS EC2).
+
+Transactional Databases (OLTP): Relational databases (like PostgreSQL) demand block storage so they can execute highly efficient, sub-millisecond row updates without scanning or rewriting whole files.
+
+AWS Equivalent: Amazon Elastic Block Store (EBS). It is network-attached under the hood but acts exactly like a directly attached physical SSD to the virtual machine.
+
+
+Indexes & Columnar Storage
+Database Indexes:
+
+Definition: A distinct data structure (like the index at the back of a book) that maps the exact location of specific records.
+
+Use Case: Prevents slow "Full Table Scans." Essential for Transactional (OLTP) databases to find, update, or delete individual rows in milliseconds using Primary and Foreign keys.
+
+Row-Oriented vs. Columnar Databases:
+
+Row-Oriented (OLTP): Optimized for writing and retrieving single, complete records quickly (e.g., loading a user's profile on a website).
+
+Columnar (OLAP): Optimized for scanning massive amounts of data for analytics (e.g., calculating the sum of all sales in 2026). It only reads the specific columns requested by the query.
+
+Columnar Advantages:
+
+Reduced Disk I/O: Skips reading irrelevant columns, saving massive amounts of disk and network bandwidth.
+
+Extreme Compression: Because identical data types (like thousands of dates or booleans) are stored sequentially, algorithms can compress them highly efficiently.
+
+Data Modeling Shift (Denormalization):
+
+Historically, columnar databases struggled with SQL JOIN operations. To fix this, Data Engineers would "denormalize" data—pre-joining tables together into massive, wide tables with nested arrays to maximize read performance.
