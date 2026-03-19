@@ -222,3 +222,54 @@ The Risk: acks=all only guarantees writes to the active ISR. If the ISR shrinks 
 The Fix: You must configure min.insync.replicas=2 (typically on a topic with replication.factor=3).
 
 The Result: If the ISR drops below 2, the Leader will throw a NotEnoughReplicasException and reject all new writes. This strictly enforces the CAP theorem: choosing Data Consistency over System Availability.
+
+
+ISR Demotion and Self-Healing
+
+1. Out-of-Sync Replicas (OSR)
+The State Change: When a Follower exceeds the allowed lag threshold, the Leader demotes it from the ISR to the OSR.
+
+The Behavior: The demoted broker continues to fetch data from the Leader asynchronously. It does not handle producer acks and is completely ineligible to be elected as a new Leader if the current Leader crashes.
+
+Self-Healing: Once the OSR broker catches up and its lag falls back within the configured limits, the Leader automatically promotes it back into the ISR.
+
+2. Under-Replicated Partitions (URP)
+Definition: A critical cluster metric. A partition is flagged as URP when the number of brokers in the ISR list is strictly less than the configured replication.factor for that topic.
+
+The Impact: The cluster is surviving, but it is running with reduced fault tolerance. If you have min.insync.replicas=2, and your ISR shrinks from 3 down to 1, the partition will stop accepting new writes entirely to protect data integrity.
+
+
+==========================
+
+      PRODUCERS
+
+==========================
+
+
+Producers are the client applicaitons that write into a cluster
+
+
+Producer Architecture & Tuning
+Add these three pillars to your Day 15/16 Producer notes.
+
+1. Cluster Connection & Metadata
+Bootstrap Servers: Producers only require a partial list of broker IP addresses (bootstrap.servers) to establish initial contact.
+
+Metadata Refresh: Upon connecting, the producer fetches cluster metadata (identifying the active Leaders for every partition of the target topic). The producer then routes records directly to the correct Leader broker, bypassing any intermediate routing hops.
+
+2. Throughput Optimization (Batching & Compression)
+The Bottleneck: Sending individual records results in catastrophic network round-trip overhead.
+
+batch.size: Defines the maximum size (in bytes, default 16KB) of a record batch for a single partition. The producer groups records until this limit is reached before dispatching the network request.
+
+linger.ms: Defines the maximum time (in milliseconds, default 0) to wait for a batch to fill. Setting this to >0 (e.g., 5ms or 10ms) introduces slight latency but drastically increases batch sizes, improving overall cluster throughput.
+
+Compression (compression.type): Producers should be configured to compress entire batches (using snappy, lz4, or zstd) rather than individual messages, heavily reducing network bandwidth and broker disk usage.
+
+3. Reliability: The Idempotent Producer
+The Network Retry Problem: If an ACK is lost in transit, the producer's automatic retry mechanism will append duplicate records to the partition log.
+
+enable.idempotence=true: The producer assigns a unique Producer ID (PID) and a monotonically increasing Sequence Number to every batch.
+
+Broker Deduplication: The partition Leader tracks the highest Sequence Number received from each PID. If a retry arrives with a sequence number ≤ the tracked number, the broker discards the duplicate but acknowledges the request, guaranteeing Exactly-Once production.
+
