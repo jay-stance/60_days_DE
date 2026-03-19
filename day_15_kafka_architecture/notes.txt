@@ -192,3 +192,33 @@ The Problem: Traditional Kafka tied storage capacity directly to compute capacit
 The Solution: Tiered Storage allows brokers to offload older, closed log segments to remote Object Storage (like AWS S3).
 
 The Mechanism: The broker keeps "hot" data (e.g., the last 24 hours) on local NVMe SSDs for low-latency streaming. "Cold" data (e.g., the last 30 days) lives in S3. The broker seamlessly fetches from S3 when a consumer requests historical offsets, allowing for infinite retention at a fraction of the cost.
+
+
+==========================
+
+      REPLICATION
+
+==========================
+
+Replication, ISRs, and Durability Guarantees
+
+1. In-Sync Replicas (ISR)
+Definition: A dynamic list maintained by the partition Leader containing all Follower replicas that are fully caught up to the Leader's log.
+
+The Mechanism: Followers issue asynchronous "Fetch" requests to the Leader. If a Follower stops fetching, or its lag exceeds the replica.lag.time.max.ms configuration (default usually 10-30 seconds), the Leader removes it from the ISR.
+
+Failover Rule: If the Leader goes offline, the cluster controller will only elect a new leader from the current ISR pool, guaranteeing no committed data is lost during the transition.
+
+2. Producer Acknowledgements (acks)
+acks=0: Zero latency penalty, maximum throughput. Zero durability guarantee.
+
+acks=1: Moderate latency. Guarantees the Leader received the record. Susceptible to data loss if the Leader crashes before replication occurs.
+
+acks=all (or acks=-1): High latency. The Leader waits for full confirmation from all active members of the ISR before returning a success response to the producer. Required for zero-data-loss architectures.
+
+3. The Ultimate Durability Configuration
+The Risk: acks=all only guarantees writes to the active ISR. If the ISR shrinks to 1 (only the Leader), the cluster operates as a single point of failure despite the acks=all setting.
+
+The Fix: You must configure min.insync.replicas=2 (typically on a topic with replication.factor=3).
+
+The Result: If the ISR drops below 2, the Leader will throw a NotEnoughReplicasException and reject all new writes. This strictly enforces the CAP theorem: choosing Data Consistency over System Availability.
