@@ -1,0 +1,116 @@
+KAFKA 101 COURSE
+
+unoike tables that are used for storing things/items, Kafka is more focused on stroing events, how things appen.it usually processes events as they occur, but can also remember events that have happened in the past.
+
+real time processing
+
+=================
+
+    TOPICS
+
+=================
+
+Topics store data in logs
+
+                     TIME
+------------------------------------------------------------>
+
++------Topic-------/
+|  :  +----------+   +----------+   +----------+   . - - - - .
+|  '->|  data +  |   |  data +  |   |  data +  |   |         |
+|     | metadata |   | metadata |   | metadata |   |         |
+|     +----------+   +----------+   +----------+   . - - - - .
+'---\-----------------------------------------------\-------/
+      : :             : :            : :             : :
+      : '-------------^-'------------^-'             : :
+      :               :                              : :
+   Messages           '------------------------------' :
+                                                       :
+                                         Next message -'
+                                          will go here
+
+Topics store data in logs, and logs is a sequence of data items
+
+
+1. The Core Constraint: Strict Immutability
+Definition: Apache Kafka is a distributed commit log. Once a message is written to a partition and acknowledged by the broker, it is physically written to the disk as an immutable byte array.
+
+Implication: Standard SQL commands like UPDATE or DELETE are structurally impossible. You cannot alter data in place. All changes must be handled by appending new data or processing the stream.
+
+2. Strategy 1: Compensating Events (The Ledger Pattern)
+Use Case: Financial transactions, event sourcing, or historical auditing where preserving the history of the mistake is legally or operationally required.
+
+Mechanism: When incorrect data is written (e.g., crediting $500 instead of $50), the producer must append a new "reversal" event (-$500) followed by the "correct" event (+$50).
+
+Consumer Responsibility: The downstream consumer (like your Python ETL script) is responsible for reading the entire history, calculating the net effect, and resolving the final state in the target database.
+
+3. Strategy 2: Log Compaction (The "Upsert" Pattern)
+Use Case: Maintaining the latest state of an entity (e.g., a user's current shipping address, or the latest exchange rate for USD/NGN).
+
+Mechanism: You must send messages with a defined Key (e.g., Key: User_123). You configure the specific Kafka Topic with cleanup.policy=compact.
+
+How it Works: A background thread on the Kafka broker (the Log Cleaner) periodically scans the partition's segments. When it finds multiple messages with the exact same Key, it physically discards the older messages, retaining only the message with the highest Offset (the newest one).
+
+Result: The topic acts as an ever-updating table of current states, preventing the hard drive from filling up with obsolete data.
+
+4. Strategy 3: Tombstone Messages (The "Targeted Delete")
+Use Case: Deleting a specific entity entirely from a compacted topic (e.g., a user deletes their account).
+
+Mechanism: Requires Log Compaction to be enabled. The producer sends a message with the target Key, but a null (empty) Value.
+
+How it Works: This null payload acts as a "Tombstone." When the Log Cleaner background thread scans the disk and sees the Tombstone, it deletes all prior messages with that Key, and eventually deletes the Tombstone itself.
+
+5. Strategy 4: Stream Filtering / Topic Rewriting (The "Hard Purge")
+Use Case: GDPR "Right to be Forgotten" compliance, purging toxic/corrupted data batches, or altering schema structures.
+
+Mechanism: You cannot delete the data in Topic_A. Instead, you spin up a stream processing application that consumes Topic_A, applies filtering logic to drop or mask the unwanted records, and publishes the clean records to a new Topic_B.
+
+The Cutover: Downstream consumers are updated to read from Topic_B, and Topic_A is permanently deleted by the administrator.
+
+
+Kafka uses logs not queues. the difference is that in queues after they are read they disappear, but logs are always there even after being read, another person can still read it 
+
+kafka messages have a value, a key,a timestamp, header, topic, partitioin, offset.
+the value is the actual thing you are storing, which can be a json, raw string, protobuff etc.
+and the key is the unidque identifer for the message, and it is not mandatory to add it in a message 
+the timestamp is given by the producer, and if not it ia assigned to a default time of when the message is received 
+a message knows the topic it belongs to 
+
+log retention and compaction:
+log retention: dlete old message or trim ogs by size
+log compaction: keep only the latest value per key 
+
+PARTITIONS 
+
+Kafka only guarantees message ordering within a single partition, NEVER across the entire topic.
+
+1. The Ordering Guarantee
+The Rule: Apache Kafka provides strict chronological ordering guarantees only at the partition level. It does not guarantee global ordering across an entire topic if the topic has more than one partition.
+
+The Implication: To process events sequentially for a specific entity (e.g., an IoT sensor, a user ID, a bank account), all events for that entity must be routed to the exact same partition.
+
+2. Message Routing Strategies
+Null Key (Round-Robin Strategy):
+
+If a producer sends a message with a null key, the Default Partitioner distributes messages evenly across all available partitions in a round-robin fashion.
+
+Pros: Perfect load balancing. No single partition gets overwhelmed.
+
+Cons: Absolute loss of chronological ordering for specific entities.
+
+Assigned Key (Hash-Based Strategy):
+
+If a producer assigns a Key (e.g., sensor_id), the Default Partitioner passes the key through a hashing algorithm (typically murmur2).
+
+The Formula: target_partition = hash(Key) % total_partitions
+
+Pros: Deterministic routing. Every message with the same key is guaranteed to append to the same partition, preserving strict chronological order for that key.
+
+Cons: Risk of "Hot Partitions." If one sensor generates 90% of your data, that specific partition (and the broker hosting it) will become a severe bottleneck while other partitions sit idle.
+
+3. The Partition Scaling Danger
+The Problem: Because the routing formula relies on the total_partitions integer, altering the number of partitions on a live topic alters the mathematical output for existing keys.
+
+The Result: New messages for an existing key will be routed to a different partition than the historical messages, permanently breaking the chronological ordering sequence for downstream consumers.
+
+The Solution: You must heavily over-provision your partition count when creating the topic initially (e.g., starting with 30 partitions even if you only need 3 today). If you absolutely must scale, you create a new topic and use a stream processor to migrate the data.
