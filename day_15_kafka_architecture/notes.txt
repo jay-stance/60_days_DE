@@ -331,3 +331,55 @@ What it does: The -b stands for --from-beginning. It acts as a consumer and prin
 confluent kafka topic produce <topic_name> --parse-key
 
 What it does: Opens an active producer prompt. The --parse-key flag tells Kafka to look for a colon (:) in your string, using everything before the colon as the routing Key, and everything after it as the payload Value.
+
+
+
+===================
+
+    CONSUMERS
+
+===================
+
+Kafka Consumers: Reading and Reacting to Event Streams
+In Apache Kafka®, consumers are the client applications responsible for reading data from Kafka topics. While producers write data into topics, consumers retrieve it, process it, and often send it onward for additional processing or storage. Any application that pulls data from Kafka—whether for analytics, database updates, or real-time processing—is a consumer.
+
+To connect to a Kafka cluster, consumers use the KafkaConsumer API. Configuration is similar to producers, requiring properties like:
+
+bootstrap.servers: A list of broker addresses to connect to. This doesn’t need to be exhaustive—just enough for the consumer to discover the rest of the cluster.
+group.id: A unique identifier for the consumer group (more on this in the next section).
+Once configured, the consumer subscribes to one or more topics. You can even use a regular expression to subscribe to multiple topics dynamically. After subscribing, the consumer enters an infinite loop, continuously polling for new messages. This is normal in streaming applications since data is constantly flowing—there is no "end of data."
+
+When polling, the consumer fetches ConsumerRecords, which contain:
+
+Key: The unique identifier of the message.
+Value: The data payload.
+Partition: The partition the message came from.
+Timestamp: When the event was recorded.
+Headers: Optional metadata.
+Consumers iterate over these records to process each message, often logging, transforming, or sending it to other systems.
+
+Here's an example of code:
+
+
+Properties config = loadProperties("kafka.properties");
+KafkaConsumer<String, String> consumer = new KafkaConsumer<>(config);
+consumer.subscribe(List.of("thermostat_readings"));
+while (true) {
+   ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(10));
+   for (ConsumerRecord<String, String> record : records) {
+      System.out.println("Message=" + record.key() + ":" + record.value());
+      // further process the record...
+}
+Consumer Offsets and Recovery
+Kafka tracks the offset of each consumed message. This is called offset tracking and ensures that if a consumer goes offline, it can resume from where it left off. These offsets are committed back to Kafka itself, stored in an internal topic. If a consumer crashes and is restarted, it reads its last committed offset and continues processing without missing data.
+
+Consumer Groups and Parallelism
+To scale processing, Kafka supports consumer groups. All consumers in the same group share the work of reading from a topic's partitions. Kafka assigns each partition to one consumer in the group—no two consumers in the same group read from the same partition. This enables parallelism:
+
+If a topic has three partitions and three consumers in the group, each consumer processes messages from one partition independently.
+If more consumers are added, Kafka automatically rebalances the partitions across them.
+If a consumer fails, its partitions are reassigned to the remaining consumers to maintain processing.
+Importantly, Kafka’s log-based design means consuming data does not delete it. Multiple consumers—even in different consumer groups—can read the same messages independently. This allows for separate applications to process the same event streams without conflict.
+
+In summary, consumers are how data is retrieved from Kafka for processing. Through consumer groups, you can scale horizontally, process in parallel, and guarantee fault tolerance—all while preserving message integrity and order within each partition.
+
