@@ -1,5 +1,6 @@
 *.MOV
 *.mp4
+*.secret
 
 # Local .terraform directories
 **/.terraform/*

@@ -273,3 +273,61 @@ enable.idempotence=true: The producer assigns a unique Producer ID (PID) and a m
 
 Broker Deduplication: The partition Leader tracks the highest Sequence Number received from each PID. If a retry arrives with a sequence number ≤ the tracked number, the broker discards the duplicate but acknowledges the request, guaranteeing Exactly-Once production.
 
+
+1. Context Switching (The "Where Am I?" Commands)
+In an enterprise, you will have multiple environments (e.g., Development, Staging, Production) and multiple clusters within them. You must always verify where your terminal is pointing before you run a command.
+
+confluent environment list
+
+What it does: Lists all the AWS/GCP environments your company has set up.
+
+The Gotcha: Look for the asterisk (*) next to the ID to see which one you are currently inside.
+
+confluent environment use <env-id>
+
+What it does: Switches your terminal's active focus to that specific environment.
+
+confluent kafka cluster list
+
+What it does: Lists all the Kafka clusters living inside your current active environment.
+
+confluent kafka cluster use <cluster-id>
+
+What it does: Points your CLI directly at a specific cluster. Always run this before producing or consuming data.
+
+2. Security & Access (API Keys)
+You cannot read or write data to a Confluent Cloud cluster without authenticating.
+
+confluent api-key create --resource <cluster-id>
+
+What it does: Generates a brand new Key and Secret for that specific cluster. Note: You only see the secret once, so copy it immediately.
+
+`confluent api-key use <API-Key> --resource <cluster-id>`
+
+What it does: Attaches your generated API key to your current terminal session so you have permission to actually interact with the cluster.
+
+3. Topic Management
+Before you send data, you need to manage the logs.
+
+confluent kafka topic list
+
+What it does: Shows every topic in your active cluster.
+
+confluent kafka topic create <topic_name> --partitions <number>
+
+What it does: Creates a new topic directly from the terminal. As we discussed, setting the right number of partitions here is your most important scaling decision.
+
+confluent kafka topic delete <topic_name>
+
+What it does: Permanently destroys the topic and all its immutable logs. Use with extreme caution.
+
+4. Data Operations (The Troubleshooting Tools)
+These are your bread and butter for debugging pipelines.
+
+confluent kafka topic consume <topic_name> -b
+
+What it does: The -b stands for --from-beginning. It acts as a consumer and prints every single message in the topic from offset 0 up to the present moment, and then stays open listening for new ones.
+
+confluent kafka topic produce <topic_name> --parse-key
+
+What it does: Opens an active producer prompt. The --parse-key flag tells Kafka to look for a colon (:) in your string, using everything before the colon as the routing Key, and everything after it as the payload Value.
