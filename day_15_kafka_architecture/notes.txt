@@ -114,3 +114,30 @@ The Problem: Because the routing formula relies on the total_partitions integer,
 The Result: New messages for an existing key will be routed to a different partition than the historical messages, permanently breaking the chronological ordering sequence for downstream consumers.
 
 The Solution: You must heavily over-provision your partition count when creating the topic initially (e.g., starting with 30 partitions even if you only need 3 today). If you absolutely must scale, you create a new topic and use a stream processor to migrate the data.
+
+
+
+Partition Architecture & Limits
+
+1. Fault Tolerance: Leaders and Followers
+Mechanism: Partitions are replicated across multiple Kafka Brokers (servers) based on the replication.factor configuration (standard is 3).
+
+Roles: For every partition, one broker acts as the Leader (handling 100% of read/write requests). The remaining brokers act as In-Sync Replicas (ISRs) / Followers, continuously fetching data from the Leader to stay updated.
++1
+
+Failover: If the Leader broker crashes, the cluster (via KRaft or Zookeeper) automatically elects an ISR to become the new Leader, ensuring zero downtime and zero data loss.
+
+2. The Concurrency Limit (Partition-to-Consumer Mapping)
+The Rule: Within a single Consumer Group, a partition can be consumed by a maximum of ONE consumer thread/instance.
+
+The Bottleneck: Max Concurrent Consumers = Total Number of Partitions.
+
+Capacity Planning: If a topic has 12 partitions, you can scale your processing up to exactly 12 workers. Adding a 13th worker results in an idle resource. This makes choosing the initial partition count the most critical capacity planning decision in Kafka.
+
+3. Physical Storage: Log Segments
+The Abstraction: A partition is a logical concept. Physically, a partition is a directory on a broker's hard drive.
+
+The Implementation: To prevent OS-level file size limitations, Kafka divides the partition into multiple smaller files called Segments (default size is typically 1GB).
+
+Data Lifecycle: Writers only append to the single "Active Segment." Older segments are closed and immutable. This architecture allows Kafka to enforce Data Retention policies (e.g., retention.ms=7_days) by efficiently dropping entire closed segment files from the disk rather than executing heavy row-by-row deletions.
+
