@@ -340,6 +340,36 @@ What it does: Opens an active producer prompt. The --parse-key flag tells Kafka 
 
 ===================
 
+Consumer Architecture & Stability
+
+1. The Polling Architecture
+Mechanism: Consumers operate on a "Pull" model. They issue highly optimized poll() requests to the partition Leader.
+
+Benefits: Prevents backpressure. If downstream systems (like a target Postgres database) slow down, the consumer naturally slows its polling rate, leaving the unread data safely buffered on the Kafka broker's disk.
+
+2. Consumer Groups & Partition Assignment
+Definition: A group of consumer instances sharing a common group.id. Kafka dynamically balances the topic's partitions across all active members of the group.
+
+Scaling Limit: Active Consumers <= Total Partitions.
+
+Fan-out (Pub/Sub): Multiple distinct applications can independently read the same topic by using different group.id strings. Each group maintains its own independent offset bookmark.
+
+3. Offset Management & Processing Guarantees
+The Bookmark: Consumers save their current reading position by committing the offset number to the internal __consumer_offsets topic.
+
+enable.auto.commit=true: Dangerous for production. The consumer library commits offsets on a background timer, completely detached from whether the application actually finished processing the data. Risks severe data loss.
+
+Manual Committing (commitSync / commitAsync): The enterprise standard. The application explicitly commits the offset only after the business logic (e.g., database insert) succeeds. Guarantees At-Least-Once delivery.
+
+4. Liveness & Rebalancing
+Rebalancing: The protocol where Kafka revokes all partition assignments and re-assigns them due to a consumer joining or leaving the group. It is a "stop-the-world" event that briefly halts data processing.
+
+session.timeout.ms: The network health check. If the background Heartbeat thread fails to ping the broker within this window, the broker evicts the consumer.
+
+max.poll.interval.ms: The application health check. The maximum allowed time between poll() calls. If processing a heavy batch of records exceeds this timer, the broker assumes the processing thread is deadlocked and evicts the consumer, triggering a rebalance loop.
+
+
+
 Kafka Consumers: Reading and Reacting to Event Streams
 In Apache Kafka®, consumers are the client applications responsible for reading data from Kafka topics. While producers write data into topics, consumers retrieve it, process it, and often send it onward for additional processing or storage. Any application that pulls data from Kafka—whether for analytics, database updates, or real-time processing—is a consumer.
 
