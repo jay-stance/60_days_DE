@@ -1,27 +1,27 @@
 import json
 from confluent_kafka import Consumer, Producer
 
-# 1. Setup the Consumer (Manual Commits Enabled)
-consumer_config = {
-    'bootstrap.servers': 'pkc-YOUR-ENDPOINT.confluent.cloud:9092',
-    'security.protocol': 'SASL_SSL',
-    'sasl.mechanisms': 'PLAIN',
-    'sasl.username': 'YOUR_API_KEY',
-    'sasl.password': 'YOUR_API_SECRET',
-    'group.id': 'senior_pipeline_group',
-    'auto.offset.reset': 'earliest',
-    'enable.auto.commit': False  # WE CONTROL THE COMMITS NOW
-}
+from configparser import ConfigParser
+from argparse import ArgumentParser, FileType
+
+# Parse the command line.
+parser = ArgumentParser()
+parser.add_argument('config_file', type=FileType('r'))
+args = parser.parse_args()
+
+# Parse the configuration.
+consumer_config = ConfigParser()
+consumer_config.read_file(args.config_file)
+config = dict(consumer_config['default'])
+config.update(consumer_config['consumer'])
+
 consumer = Consumer(consumer_config)
 
-# 2. Setup the Producer (For the DLQ)
-producer_config = {
-    'bootstrap.servers': 'pkc-YOUR-ENDPOINT.confluent.cloud:9092',
-    'security.protocol': 'SASL_SSL',
-    'sasl.mechanisms': 'PLAIN',
-    'sasl.username': 'YOUR_API_KEY',
-    'sasl.password': 'YOUR_API_SECRET'
-}
+producer_config = ConfigParser()
+producer_config.read_file(args.config_file)
+producer_config = dict(producer_config['default'])
+producer_config.update(producer_config['producer'])
+
 dlq_producer = Producer(producer_config)
 
 MAIN_TOPIC = 'thermostat_readings'
