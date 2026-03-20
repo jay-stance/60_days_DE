@@ -1,4 +1,5 @@
-📝 Summary for Your Notes: Asynchronous Callbacks
+Asynchronous Callbacks
+
 The Problem: Synchronous production (waiting for acks one-by-one) destroys pipeline throughput. Asynchronous production is fast, but blind to network failures.
 
 The Solution: Use the on_delivery callback. It acts as a background listener that handles success/failure receipts independently of the main application thread.
@@ -64,7 +65,11 @@ producer = Producer(config)
 # You keep calling producer.produce() as fast as you can.
 # The Producer will trap the messages in memory, compress them, 
 # and send them in massive chunks every 20 milliseconds.
-📝 Summary for Your Notes: Batching & Compression
+
+===================================
+    Batching & Compression
+===================================
+
 The Problem: Sending high-frequency, individual messages creates severe network overhead and limits Producer throughput.
 
 The Mechanism: The Producer accumulates individual produce() calls into an in-memory buffer and groups them into batches per partition.
@@ -78,3 +83,19 @@ batch.size: The memory threshold (in bytes, e.g., 32768 for 32KB) that forces th
 compression.type: Applied at the batch level, not the message level. Algorithms like snappy or lz4 reduce network bandwidth and broker disk usage.
 
 The Result: Fewer network requests, smaller payload sizes, faster overall pipeline performance, and lower cloud infrastructure costs.
+
+===================================
+    The Idempotent Producer
+===================================
+
+The Problem: Network failures after a broker writes data but before the acknowledgment reaches the Producer trigger automatic retries. This results in duplicate data being appended to the Kafka log.
+
+The Mechanism: Idempotence guarantees Exactly-Once production. The Producer is assigned a unique Producer ID (PID), and each batch is given an incrementing Sequence Number.
+
+The Resolution: If the broker receives a batch with a Sequence Number it has already successfully committed for that PID, it ignores the payload and simply returns an ACK to resolve the Producer's retry loop.
+
+The Implementation:
+
+Set 'enable.idempotence': True in the configuration dictionary.
+
+Requirement: This strictly requires 'acks': 'all' to function properly.

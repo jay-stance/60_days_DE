@@ -13,7 +13,10 @@ config = {
     # --- BATCHING & COMPRESSION ---
     'linger.ms': 20,          # Wait artificially for 20 milliseconds to build a batch
     'batch.size': 32768,      # ...OR until the batch hits 32KB, whichever comes first
-    'compression.type': 'snappy' # Compress the entire batch before sending
+    'compression.type': 'snappy', # Compress the entire batch before sending
+    
+    # 2. THE MAGIC LINE
+    'enable.idempotence': True
 }
 
 producer = Producer(config)
