@@ -1,0 +1,7 @@
+version: '3.8'
+
+services:
+  kafka_consumer_worker:
+    build: .  # Builds your Python script into a container
+    deploy:
+      replicas: 6  # <-- SCALE TO MATCH PARTITION COUNT

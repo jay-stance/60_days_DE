@@ -1,0 +1,34 @@
+📝 Senior Kafka Consumer Patterns: Architecting for Failure
+1. The "Poison Pill" & Dead Letter Queue (DLQ)
+The Threat: A "Poison Pill" is a malformed message (e.g., raw text instead of JSON, or a changed schema). If the consumer tries to parse it, throws an unhandled exception, and crashes before committing the offset, it will pull the exact same bad message upon restart. This creates an infinite crash loop, bringing down the entire pipeline.
+
+The Architecture: The consumer script acts as both a consumer (reading the main topic) and a producer (writing to a quarantine topic).
+
+The Execution Flow:
+
+Disable Auto-Commits: Set enable.auto.commit: False to take manual control.
+
+Try/Except Block: Wrap the payload parsing (e.g., json.loads()) in strict error handling.
+
+Route to DLQ: If a parsing error occurs, catch the exception and use a Kafka Producer instance to send the raw, unparsed payload directly to a dedicated <topic_name>_dlq topic.
+
+Commit Anyway: Crucially, call consumer.commit(msg) even after handling the error. This tells Kafka to advance the offset and give you the next message, allowing the pipeline to survive without dropping a beat. Data engineers can inspect the DLQ topic later.
+
+2. The Idempotent Database Insert (Upsert Pattern)
+The Threat: Kafka guarantees "At-Least-Once" delivery. If a consumer successfully writes a row to a database (like PostgreSQL) but the server crashes a millisecond before the Kafka offset is committed, Kafka will resend the message on restart. A standard INSERT query will result in duplicated financial or telemetry data.
+
+The Architecture: You cannot guarantee "Exactly-Once" delivery inside Kafka alone when writing to an external system. You must shift the burden of deduplication to the target database using Idempotency (an operation that produces the same result whether executed once or a thousand times).
+
+The Execution Flow:
+
+Database Constraints: The target database table must have a UNIQUE constraint assigned to the logical primary key of the event (e.g., sensor_id + read_at timestamp).
+
+The Upsert Query: Never use a standard INSERT. Use an "Upsert" command (e.g., Postgres: INSERT ... ON CONFLICT DO UPDATE SET...). If the database sees a duplicate record, it simply overwrites the existing row with the exact same data instead of throwing an error or creating a duplicate.
+
+The Two-Phase Commit (Strict Ordering):
+
+Step A: Execute the DB query and commit the database transaction (db_conn.commit()).
+
+Step B: ONLY IF Step A succeeds, commit the Kafka offset (consumer.commit(msg)).
+
+Failure State: If the database goes down, do not commit the Kafka offset. The consumer will simply retry the exact same message on the next loop until the database is back online.
