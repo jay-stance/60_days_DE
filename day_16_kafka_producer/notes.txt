@@ -117,3 +117,22 @@ Strategy 2: Null-Key Partitioning (For Throughput)
 Mechanism: Omit the key (key=None). The Producer uses a "Sticky Partitioning" algorithm to route entire batches of messages to random partitions in a round-robin fashion.
 
 Use Case: Stateless event logging, metrics aggregation, or any scenario where maximum cluster load-balancing is prioritized over event ordering.
+
+
+===================================
+  The Cost of Over-Partitioning
+===================================
+
+The Myth: "More partitions = strictly better performance."
+
+The Reality: Partitions have a heavy physical cost. Over-partitioning leads to cluster instability, higher latency, and increased memory consumption on client applications.
+
+The 3 Dangers of Too Many Partitions:
+
+File System Limits: Each partition requires multiple open file handles (.log, .index). Millions of partitions will crash the broker's OS.
+
+Client Memory Overhead: Producers and Consumers allocate memory buffers per partition. Too many partitions will cause client-side OOM (Out of Memory) crashes.
+
+Increased Downtime: When a broker crashes, the cluster must elect new leaders for its partitions. 10,000 partitions take significantly longer to reassign than 50 partitions, resulting in unacceptable pipeline downtime.
+
+The Golden Rule of Sizing: Start small (e.g., 6, 12, or 30 partitions). You cannot decrease partitions because Kafka cannot merge two distributed, chronological logs back together safely. However, you can always add more partitions later if your consumer CPU hits 100% and you need more parallel workers.
