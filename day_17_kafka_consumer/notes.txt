@@ -32,3 +32,28 @@ Step A: Execute the DB query and commit the database transaction (db_conn.commit
 Step B: ONLY IF Step A succeeds, commit the Kafka offset (consumer.commit(msg)).
 
 Failure State: If the database goes down, do not commit the Kafka offset. The consumer will simply retry the exact same message on the next loop until the database is back online.
+
+====================================
+
+    Scaling Python Consumers
+
+====================================
+
+Add this to complete your Consumer Architecture cheat sheet:
+
+3. Horizontal Scaling & Bypassing the GIL
+The Constraint: Python's Global Interpreter Lock (GIL) prevents true parallel execution of CPU-bound tasks within a single script. Using the threading library for Kafka consumers creates artificial bottlenecks.
+
+The Architecture: Process Isolation via Consumer Groups. Do not scale inside the script; scale the script itself using container orchestration (Docker/ECS/Kubernetes).
+
+The Execution Flow:
+
+Write a simple, single-threaded consumer script.
+
+Hardcode a specific group.id in the consumer configuration.
+
+Deploy multiple independent instances (containers) of this exact script.
+
+The Golden Rule of Scaling: Number of Active Containers <= Number of Partitions.
+
+The Mechanism: The Kafka Cluster's Group Coordinator automatically detects when new containers with the same group.id connect. It triggers a Rebalance, evenly distributing the partitions across the active containers, achieving true parallel processing across multiple CPU cores without complex Python threading logic.
