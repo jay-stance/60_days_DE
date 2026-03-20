@@ -57,3 +57,22 @@ Deploy multiple independent instances (containers) of this exact script.
 The Golden Rule of Scaling: Number of Active Containers <= Number of Partitions.
 
 The Mechanism: The Kafka Cluster's Group Coordinator automatically detects when new containers with the same group.id connect. It triggers a Rebalance, evenly distributing the partitions across the active containers, achieving true parallel processing across multiple CPU cores without complex Python threading logic.
+
+
+
+📝 Final Additions for Your Notes: Micro-Batching & Callbacks
+Add these final two bullet points to close out your Consumer module.
+
+4. Micro-Batching (consume() vs poll())
+The Problem: Polling and processing one message at a time creates severe network bottlenecking when writing to external sinks (Databases, Data Warehouses, APIs).
+
+The Solution: Use consumer.consume(num_messages=X, timeout=Y). This pulls a list of messages. Process them locally in a Python list, and use database bulk-operations (e.g., executemany()) to write hundreds of records in a single network round-trip.
+
+Benefit: Reduces database CPU load and drastically increases pipeline throughput.
+
+5. Graceful Rebalancing (Callbacks)
+The Problem: A cluster rebalance immediately revokes partition assignments. If your consumer is currently building a batch in memory, that data will be lost and re-processed by another worker, leading to inefficiencies or duplication.
+
+The Solution: Implement an on_revoke callback function and pass it to consumer.subscribe().
+
+Mechanism: When a rebalance starts, Kafka halts polling and executes your on_revoke function before taking the partition away. This gives your code a brief window to execute an emergency flush of its in-memory buffer to the database, ensuring zero lost work.
