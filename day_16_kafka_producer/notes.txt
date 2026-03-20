@@ -99,3 +99,21 @@ The Implementation:
 Set 'enable.idempotence': True in the configuration dictionary.
 
 Requirement: This strictly requires 'acks': 'all' to function properly.
+
+===================================
+    Partitioning Strategies
+===================================
+
+The Constraint: Kafka only guarantees strict temporal ordering of messages within a single partition, not across the entire topic.
+
+Strategy 1: Key-Based Partitioning (For Ordering)
+
+Mechanism: Pass a logical identifier (e.g., sensor_id, customer_id) to the key argument of the produce method. The Producer hashes the key to deterministically route all events with that same key to the exact same partition.
+
+Use Case: Financial ledgers, CDC (Change Data Capture) database logs, stateful IoT tracking where chronological order is strictly required.
+
+Strategy 2: Null-Key Partitioning (For Throughput)
+
+Mechanism: Omit the key (key=None). The Producer uses a "Sticky Partitioning" algorithm to route entire batches of messages to random partitions in a round-robin fashion.
+
+Use Case: Stateless event logging, metrics aggregation, or any scenario where maximum cluster load-balancing is prioritized over event ordering.
