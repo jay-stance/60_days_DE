@@ -1,0 +1,20 @@
+📝 Summary for Your Notes: Asynchronous Callbacks
+The Problem: Synchronous production (waiting for acks one-by-one) destroys pipeline throughput. Asynchronous production is fast, but blind to network failures.
+
+The Solution: Use the on_delivery callback. It acts as a background listener that handles success/failure receipts independently of the main application thread.
+
+The Implementation:
+
+Write a function that accepts (err, msg).
+
+Pass it to producer.produce(..., on_delivery=your_function).
+
+Critical: Continuously call producer.poll(0) in your data generation loop to serve the callback events and prevent memory buffer overflow (BufferError).
+
+Critical: Always end your script with producer.flush() to guarantee all background threads finish transmitting before the application terminates.
+
+The Difference: Consumer poll(1.0) vs. Producer poll(0)
+Consumer poll(1.0) (The Network Wait): You are telling the script, "Go over the network to the Kafka Broker and ask for data. If the broker is empty, stand there and wait for exactly 1.0 second before giving up." It is a blocking network call.
+
+Producer poll(0) (The Local Housekeeping): You are not going over the network at all. You are telling the script, "Quickly check my local Mac memory right now. Did the background thread receive any 'delivery receipts' from the broker while I was busy? If yes, trigger their on_delivery print statements. Take exactly 0 seconds to do this, and instantly go back to generating data."
+
