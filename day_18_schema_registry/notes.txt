@@ -88,3 +88,25 @@ Forward: You CANNOT delete old required fields. (Old consumers will crash on new
 Full: You CANNOT touch required fields at all. (Only optional fields are allowed).
 
 Does mapping the rules to those specific "crash scenarios" make it easier to visualize why the Registry blocks certain changes?
+
+
+Avro Code Implementation
+The Dependency: Requires the confluent-kafka[avro] package.
+
+The Client: Both Producer and Consumer require a SchemaRegistryClient instantiated with the Registry's URL and authentication credentials.
+
+The Producer Side:
+
+Uses SerializingProducer.
+
+Requires an AvroSerializer object passed to the 'value.serializer' config key.
+
+The AvroSerializer takes the raw JSON schema string as an argument. It validates the Python dictionary against this string before serialization.
+
+The Consumer Side:
+
+Uses DeserializingConsumer.
+
+Requires an AvroDeserializer object passed to the 'value.deserializer' config key.
+
+The Consumer does not need the schema string hardcoded. The AvroDeserializer automatically parses the Magic Byte from the incoming message, fetches the correct schema from the Registry, and converts the binary payload back into a native Python dictionary.
