@@ -76,3 +76,15 @@ The Network Flow: 1.  Registration: The Producer sends the schema to the Schema 
 4.  Deserialization: The Consumer reads the Magic Byte, extracts the ID, fetches the schema from the Registry via HTTP (and caches it locally), and decodes the binary payload.
 
 The Caching Benefit: Because the Consumer caches the schema in local memory after the first lookup, the Registry does not become a network bottleneck for high-throughput pipelines.
+
+NOTE: whenever a consumer is reading data from a previous version of a schema, it uses the write's schema (first version) to read the data correctly, then it checks against the reader's schema (current version) to see if the data is needed or not 
+
+When in doubt, look at the Required Fields:
+
+Backward: You CANNOT add new required fields. (New consumers will crash on old data).
+
+Forward: You CANNOT delete old required fields. (Old consumers will crash on new data).
+
+Full: You CANNOT touch required fields at all. (Only optional fields are allowed).
+
+Does mapping the rules to those specific "crash scenarios" make it easier to visualize why the Registry blocks certain changes?
