@@ -1,0 +1,24 @@
+{
+  "namespace": "com.company.iot",
+  "type": "record",
+  "name": "ThermostatReading",
+  "doc": "Captures real-time temperature data from household IoT sensors.",
+  "fields": [
+    {
+      "name": "sensor_id",
+      "type": "int",
+      "doc": "The unique integer ID of the physical thermostat."
+    },
+    {
+      "name": "temperature",
+      "type": "float",
+      "doc": "The reading in Celsius."
+    },
+    {
+      "name": "read_at",
+      "type": "long",
+      "logicalType": "timestamp-millis",
+      "doc": "UNIX epoch timestamp of when the reading occurred."
+    }
+  ]
+}
