@@ -78,3 +78,49 @@ Best for: High-stakes financial processing, massive e-commerce (like Uber or Ali
 
 How to tell the difference in code
 If you see EMIT CHANGES; at the end of the SQL, it’s ksqlDB. Flink SQL doesn't use that syntax; it just executes the query.
+
+
+===============================================
+
+     The Streaming SQL Window Variations
+
+===============================================
+
+In our previous example, we used WINDOW TUMBLING (SIZE 1 HOUR). But ksqlDB has specific syntax for all three window types we discussed, plus the ability to add Watermarks (Grace Periods).
+
+Here are the exact variations you will write day-to-day:
+
+A. The Hopping Window (Overlapping)
+You must define both the SIZE of the window and how often it moves forward (ADVANCE BY).
+
+SQL
+CREATE TABLE hopping_sales AS
+  SELECT itemid, SUM(orderunits) 
+  FROM orders_stream
+  -- A 1-hour window that updates every 10 minutes
+  WINDOW HOPPING (SIZE 1 HOUR, ADVANCE BY 10 MINUTES)
+  GROUP BY itemid
+  EMIT CHANGES;
+B. The Session Window (Activity-Based)
+You don't define a total size; you only define the "inactivity gap" that triggers the window to close.
+
+SQL
+CREATE TABLE user_sessions AS
+  SELECT userid, COUNT(*) as clicks
+  FROM clicks_stream
+  -- The window stays open until the user is idle for 30 minutes
+  WINDOW SESSION (30 MINUTES)
+  GROUP BY userid
+  EMIT CHANGES;
+C. Adding Watermarks (The GRACE PERIOD)
+This is the $5k/month addition. By default, ksqlDB might drop data that arrives after the window closes. You explicitly define a watermark using GRACE PERIOD. You can append this to any window type.
+
+SQL
+CREATE TABLE accurate_hourly_sales AS
+  SELECT itemid, SUM(orderunits) 
+  FROM orders_stream
+  -- Wait up to 15 minutes for late-arriving data before sealing the window
+  WINDOW TUMBLING (SIZE 1 HOUR, GRACE PERIOD 15 MINUTES)
+  GROUP BY itemid
+  EMIT CHANGES;
+(Note: If you transition from ksqlDB to Apache Flink, the syntax changes slightly to standard functions like TUMBLE(timestamp_col, INTERVAL '1' HOUR), but the logical parameters remain exactly the same).
