@@ -75,3 +75,6 @@ Pros: It is the industry standard for massive scale and complex state. It handle
 Cons: It is much harder to manage. You usually need a dedicated cluster (like Flink on Kubernetes or the managed Flink service in Confluent).
 
 Best for: High-stakes financial processing, massive e-commerce (like Uber or Alibaba), and complex event-driven architectures.
+
+How to tell the difference in code
+If you see EMIT CHANGES; at the end of the SQL, it’s ksqlDB. Flink SQL doesn't use that syntax; it just executes the query.
