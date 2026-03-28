@@ -1,0 +1,29 @@
+Why Stream Processing Matters in Kafka-based Systems
+As your Kafka-based applications grow, you'll likely need more than simple message handling. Use cases like real-time analytics, fraud detection, and dynamic personalization require continuous transformations, aggregations, and joins across streams of events—not just isolated message reads.
+
+That’s where stream processing frameworks come in.
+
+Real-time Stream Processors
+Advanced stream processors allow you to perform a wide range of tasks including:
+
+Windowed aggregations (e.g., count pageviews per minute)
+Stream-to-table joins (e.g., enrich clickstream data with user profiles)
+Event filtering and deduplication
+Resilience to late or out-of-order data
+Stream processing frameworks are purpose-built to manage state, ordering, and fault tolerance at scale.
+
+Two Powerful Tools: Flink and Kafka Streams
+You’ll often reach for one of these two libraries:
+
+Apache Kafka Streams – a lightweight Java library that turns your Kafka consumers into stream processors. It’s embedded, easy to deploy, and great for microservices.
+Apache Flink® – a distributed engine built for large-scale stream (and batch) processing. It supports SQL-based queries, event time processing, and high-throughput aggregations.
+Why Learn This Now?
+You don’t need to become a Flink expert overnight. But understanding the “why” behind stream processing helps you design more scalable, reactive systems from the start. In this course, you’ll:
+
+See what problems stream processing solves
+Learn when to reach for Kafka Streams vs. Flink
+Explore how SQL queries can power real-time applications with minimal code
+Key Takeaway
+Stream processing unlocks the full power of event-driven architecture—enabling smarter, faster decisions using the data you’re already collecting in Kafka.
+
+Do you have questions or comments? Join us in the #developer-confluent-io community Slack channel to engage in discussions with the creators of this content.
